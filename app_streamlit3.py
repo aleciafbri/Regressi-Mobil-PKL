@@ -134,6 +134,25 @@ def load_data():
     df = df.dropna()
     return df
 
+@st.cache_data
+def load_raw_data():
+    columns = [
+        "simbol_risiko", "kerugian_normal", "merek", "jenis_bahan_bakar", "aspirasi",
+        "jumlah_pintu", "tipe_bodi", "penggerak_roda", "letak_mesin",
+        "jarak_sumbu_roda", "panjang", "lebar", "tinggi", "berat_kosong",
+        "tipe_mesin", "jumlah_silinder", "ukuran_mesin", "sistem_bahan_bakar",
+        "diameter_bore", "langkah_piston", "rasio_kompresi", "tenaga_mesin",
+        "rpm_puncak", "konsumsi_kota", "konsumsi_tol", "harga",
+    ]
+    import os
+    local_path = "imports-85.data"
+    url = "https://archive.ics.uci.edu/ml/machine-learning-databases/autos/imports-85.data"
+
+    if os.path.exists(local_path):
+        return pd.read_csv(local_path, names=columns)
+    else:
+        return pd.read_csv(url, names=columns)
+
 @st.cache_resource
 def train_all_models(df):
     fitur_numerik = [
@@ -193,6 +212,7 @@ def format_idr(usd):
 # ============================================================
 with st.spinner("📥 Memuat & memproses dataset..."):
     df = load_data()
+    df_raw = load_raw_data()
     model_info = train_all_models(df)
 
 
@@ -231,10 +251,10 @@ with st.sidebar:
 # ============================================================
 # NAVIGASI TAB DI ATAS
 # ============================================================
-tab_home, tab_analisis, tab_prediksi, tab_tentang = st.tabs([
-    "🏠 Home",
-    "📊 Analisis Data",
-    "🔮 Prediksi Harga",
+tab_home, tab_prediksi, tab_analisis, tab_tentang = st.tabs([
+    "Home",
+    "Prediksi Harga",
+    "Analisis Data",
     "👤 Tentang Saya",
 ])
 
@@ -248,7 +268,7 @@ with tab_home:
     st.markdown("---")
     
     # Bagian Latar Belakang
-    st.subheader("📜 Latar Belakang")
+    st.subheader("Latar Belakang")
     st.write("""
     Industri otomotif memiliki variasi harga yang sangat dinamis tergantung pada spesifikasi teknis kendaraan. 
     Seringkali, pembeli atau penjual kesulitan menentukan harga pasar yang adil bagi sebuah kendaraan berdasarkan fitur-fitur yang dimilikinya. 
@@ -263,7 +283,7 @@ with tab_home:
     st.markdown("---")
 
     # Bagian Kegunaan Aplikasi
-    st.subheader("💡 Kegunaan Aplikasi")
+    st.subheader("Kegunaan Aplikasi")
     
     col1, col2 = st.columns(2)
     
@@ -286,645 +306,6 @@ with tab_home:
         """)
 
     st.info("💡 Klik menu **Prediksi Harga** di samping untuk mulai mencoba simulasi perhitungan harga mobil Anda.")
-
-# ============================================================
-# TAB: ANALISIS DATA (Dataset + Analisis + Glosarium Istilah)
-# ============================================================
-with tab_analisis:
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    from sklearn.model_selection import cross_val_score
-    import joblib
-    import io
-
-    st.title("📊 Analisis Data")
-    st.markdown("Eksplorasi dataset, visualisasi, perbandingan model, dan penjelasan istilah teknis.")
-
-    sub_dataset, sub_notebook, sub_glosarium = st.tabs([
-        "📋 Dataset",
-        "📓 Notebook",
-        "📚 Penjelasan Istilah",
-    ])
-
-    # ── SUB TAB: DATASET ──────────────────────────────────────
-    with sub_dataset:
-        st.markdown(f"Dataset UCI Machine Learning Repository setelah preprocessing — **{len(df)} baris × {len(df.columns)} kolom**.")
-        st.divider()
-
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Jumlah Data", len(df))
-        c2.metric("Jumlah Kolom", len(df.columns))
-        c3.metric("Data Berharga", df["harga"].notna().sum())
-        c4.metric("Jumlah Merek", df["merek"].nunique())
-
-        col_search, col_filter = st.columns([2, 1])
-        search = col_search.text_input("🔍 Cari merek / tipe bodi", "")
-        makes = ["Semua"] + sorted(df["merek"].dropna().unique().tolist())
-        selected_make = col_filter.selectbox("Filter Merek", makes)
-
-        filtered = df.copy()
-        if selected_make != "Semua":
-            filtered = filtered[filtered["merek"] == selected_make]
-        if search:
-            s = search.lower()
-            filtered = filtered[
-                filtered["merek"].str.lower().str.contains(s, na=False) |
-                filtered["tipe_bodi"].str.lower().str.contains(s, na=False)
-            ]
-
-        display = filtered[[
-            "merek", "tipe_bodi", "jenis_bahan_bakar", "penggerak_roda",
-            "ukuran_mesin", "tenaga_mesin", "berat_kosong",
-            "lebar", "panjang", "konsumsi_tol", "harga"
-        ]].copy()
-        display["harga_idr"] = display["harga"].apply(
-            lambda x: format_idr(x) if pd.notna(x) else "-"
-        )
-        st.caption(f"Menampilkan **{len(display)}** baris")
-        st.dataframe(display, use_container_width=True, height=450)
-
-        csv = filtered.to_csv(index=False)
-        st.download_button("📥 Download CSV", csv, "automobile_dataset.csv", "text/csv")
-
-    # ── SUB TAB: NOTEBOOK ────────────────────────────────────
-    with sub_notebook:
-        st.markdown("Semua kode dari Jupyter Notebook ditampilkan lengkap beserta outputnya.")
-
-        def nb_cell(judul, kode, output):
-            """Helper: tampilkan 1 cell notebook — judul, kode, lalu output."""
-            st.markdown(f"##### {judul}")
-            st.code(kode, language="python")
-            st.markdown("**Output:**")
-            output
-            st.divider()
-
-        # ── Cell 1: Load data ─────────────────────────────────
-        st.markdown("##### Cell 1 — Load Dataset")
-        st.code(
-            'import pandas as pd\n\ndf = pd.read_csv("imports-85.data", header=None)\ndf.head()',
-            language="python"
-        )
-        st.markdown("**Output:**")
-        st.dataframe(df.head(), use_container_width=True)
-        st.divider()
-
-        # ── Cell 2: Rename kolom ──────────────────────────────
-        st.markdown("##### Cell 2 — Beri Nama Kolom")
-        st.code(
-            """columns = [
-    "simbol_risiko","kerugian_normal","merek","jenis_bahan_bakar","aspirasi",
-    "jumlah_pintu","tipe_bodi","penggerak_roda","letak_mesin",
-    "jarak_sumbu_roda","panjang","lebar","tinggi","berat_kosong",
-    "tipe_mesin","jumlah_silinder","ukuran_mesin","sistem_bahan_bakar",
-    "diameter_bore","langkah_piston","rasio_kompresi","tenaga_mesin",
-    "rpm_puncak","konsumsi_kota","konsumsi_tol","harga",
-]
-df.columns = columns
-df.head()""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        st.dataframe(df.head(), use_container_width=True)
-        st.divider()
-
-        # ── Cell 3: df.tail() ─────────────────────────────────
-        st.markdown("##### Cell 3 — df.tail()")
-        st.code("df.tail()", language="python")
-        st.markdown("**Output:**")
-        st.dataframe(df.tail(), use_container_width=True)
-        st.divider()
-
-        # ── Cell 4: df.shape ──────────────────────────────────
-        st.markdown("##### Cell 4 — df.shape")
-        st.code("df.shape", language="python")
-        st.markdown("**Output:**")
-        st.text(f"({len(df)}, {len(df.columns)})")
-        st.divider()
-
-        # ── Cell 5: df.columns ────────────────────────────────
-        st.markdown("##### Cell 5 — df.columns")
-        st.code("df.columns", language="python")
-        st.markdown("**Output:**")
-        st.text("Index([" + ", ".join([f"'{c}'" for c in df.columns]) + "], dtype='object')")
-        st.divider()
-
-        # ── Cell 6: df.info() ─────────────────────────────────
-        st.markdown("##### Cell 6 — df.info()")
-        st.code("df.info()", language="python")
-        st.markdown("**Output:**")
-        import io as _io
-        buf_info = _io.StringIO()
-        df.info(buf=buf_info)
-        st.text(buf_info.getvalue())
-        st.divider()
-
-        # ── Cell 7: df.sample(5) ──────────────────────────────
-        st.markdown("##### Cell 7 — df.sample(5)")
-        st.code("df.sample(5)", language="python")
-        st.markdown("**Output:**")
-        st.dataframe(df.sample(5, random_state=42), use_container_width=True)
-        st.divider()
-
-        # ── Cell 8: Cek nilai '?' ─────────────────────────────
-        st.markdown("##### Cell 8 — Cek Nilai '?'")
-        st.code('(df == "?").sum()', language="python")
-        st.markdown("**Output:**")
-        # df di sini sudah bersih, tampilkan nilai asli dari notebook
-        tanda_tanya = {
-            "simbol_risiko": 0, "kerugian_normal": 41, "merek": 0,
-            "jenis_bahan_bakar": 0, "aspirasi": 0, "jumlah_pintu": 2,
-            "tipe_bodi": 0, "penggerak_roda": 0, "letak_mesin": 0,
-            "jarak_sumbu_roda": 0, "panjang": 0, "lebar": 0, "tinggi": 0,
-            "berat_kosong": 0, "tipe_mesin": 0, "jumlah_silinder": 0,
-            "ukuran_mesin": 0, "sistem_bahan_bakar": 0, "diameter_bore": 4,
-            "langkah_piston": 4, "rasio_kompresi": 0, "tenaga_mesin": 2,
-            "rpm_puncak": 2, "konsumsi_kota": 0, "konsumsi_tol": 0, "harga": 4,
-        }
-        st.text("\n".join([f"{k:<22} {v}" for k, v in tanda_tanya.items()]) + "\ndtype: int64")
-        st.divider()
-
-        # ── Cell 9: Replace '?' → NaN ─────────────────────────
-        st.markdown("##### Cell 9 — Replace '?' → NaN")
-        st.code(
-            'import numpy as np\n\ndf.replace("?", np.nan, inplace=True)',
-            language="python"
-        )
-        st.markdown("**Output:** *(tidak ada output, data diubah in-place)*")
-        st.divider()
-
-        # ── Cell 10: isna setelah replace ────────────────────
-        st.markdown("##### Cell 10 — df.isna().sum() setelah replace")
-        st.code("df.isna().sum()", language="python")
-        st.markdown("**Output:**")
-        st.text("\n".join([f"{k:<22} {v}" for k, v in tanda_tanya.items()]) + "\ndtype: int64")
-        st.divider()
-
-        # ── Cell 11: df.describe() ────────────────────────────
-        st.markdown("##### Cell 11 — df.describe()")
-        st.code("df.describe()", language="python")
-        st.markdown("**Output:**")
-        st.dataframe(df.describe(), use_container_width=True)
-        st.divider()
-
-        # ── Cell 12: Hapus kerugian_normal, dropna, konversi ─
-        st.markdown("##### Cell 12 — Preprocessing: Hapus kolom, dropna, konversi tipe data")
-        st.code(
-            """df = df.drop(columns=["kerugian_normal"])
-
-kolom_numerik = [
-    "diameter_bore","langkah_piston","tenaga_mesin","rpm_puncak","harga",
-    "jarak_sumbu_roda","panjang","lebar","tinggi","berat_kosong",
-    "ukuran_mesin","rasio_kompresi","konsumsi_kota","konsumsi_tol"
-]
-for col in kolom_numerik:
-    df[col] = pd.to_numeric(df[col], errors="coerce")
-
-df = df.dropna()
-print("Jumlah data:", len(df))
-print("Jumlah merek unik:", df["merek"].nunique())
-print(df["merek"].value_counts())""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        merek_counts = df["merek"].value_counts()
-        output_merek = f"Jumlah data: {len(df)}\nJumlah merek unik: {df['merek'].nunique()}\n"
-        output_merek += "merek\n" + "\n".join([f"{m:<20} {c}" for m, c in merek_counts.items()])
-        output_merek += "\nName: count, dtype: int64"
-        st.text(output_merek)
-        st.divider()
-
-        # ── Cell 13: Visualisasi distribusi harga ────────────
-        st.markdown("##### Cell 13 — Visualisasi Distribusi Harga")
-        st.code(
-            """import matplotlib.pyplot as plt
-import seaborn as sns
-
-sns.histplot(df["harga"], kde=True, bins=20)
-plt.title("Distribusi Harga Mobil")
-plt.xlabel("Harga (USD)")
-plt.show()""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-        fig1, ax1 = plt.subplots(figsize=(10, 4))
-        sns.histplot(df["harga"], kde=True, bins=20, ax=ax1, color="#2563eb")
-        ax1.set_title("Distribusi Harga Mobil")
-        ax1.set_xlabel("Harga (USD)")
-        plt.tight_layout()
-        st.pyplot(fig1)
-        plt.close()
-        st.divider()
-
-        # ── Cell 14: Scatter plots ────────────────────────────
-        st.markdown("##### Cell 14 — Scatter Plot Fitur vs Harga")
-        st.code(
-            """fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-pairs = [
-    ("ukuran_mesin","Ukuran Mesin vs Harga"),
-    ("tenaga_mesin","Tenaga Mesin vs Harga"),
-    ("berat_kosong","Berat Mobil vs Harga"),
-    ("konsumsi_tol","Konsumsi BBM Tol vs Harga"),
-]
-for ax, (fitur, judul) in zip(axes.flat, pairs):
-    sns.scatterplot(x=fitur, y="harga", data=df, ax=ax)
-    ax.set_title(judul)
-plt.tight_layout()
-plt.show()""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        fig2, axes2 = plt.subplots(2, 2, figsize=(12, 8))
-        for ax, (fitur, judul) in zip(axes2.flat, [
-            ("ukuran_mesin","Ukuran Mesin vs Harga"),
-            ("tenaga_mesin","Tenaga Mesin vs Harga"),
-            ("berat_kosong","Berat Mobil vs Harga"),
-            ("konsumsi_tol","Konsumsi BBM Tol vs Harga"),
-        ]):
-            sns.scatterplot(x=fitur, y="harga", data=df, ax=ax, color="#2563eb")
-            ax.set_title(judul)
-        plt.tight_layout()
-        st.pyplot(fig2)
-        plt.close()
-        st.divider()
-
-        # ── Cell 15: Heatmap korelasi ─────────────────────────
-        st.markdown("##### Cell 15 — Heatmap Korelasi Antar Fitur")
-        st.code(
-            """plt.figure(figsize=(10, 7))
-corr = df.corr(numeric_only=True)
-sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm")
-plt.title("Korelasi Antar Fitur")
-plt.show()""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        fig3, ax3 = plt.subplots(figsize=(10, 7))
-        corr = df.corr(numeric_only=True)
-        sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax3, annot_kws={"size": 7})
-        ax3.set_title("Korelasi Antar Fitur")
-        plt.tight_layout()
-        st.pyplot(fig3)
-        plt.close()
-        st.divider()
-
-        # ── Cell 16: Heatmap korelasi ke harga ───────────────
-        st.markdown("##### Cell 16 — Korelasi Fitur terhadap Harga")
-        st.code(
-            """plt.figure(figsize=(6, 8))
-corr = df.corr(numeric_only=True)
-sns.heatmap(
-    corr.loc[:, ["harga"]].sort_values(by="harga", ascending=False),
-    annot=True, cmap="coolwarm"
-)
-plt.title("Korelasi terhadap Harga")
-plt.show()""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        fig4, ax4 = plt.subplots(figsize=(4, 7))
-        corr_h = df.corr(numeric_only=True)[["harga"]].sort_values(by="harga", ascending=False)
-        sns.heatmap(corr_h, annot=True, fmt=".2f", cmap="coolwarm", ax=ax4)
-        ax4.set_title("Korelasi terhadap Harga")
-        plt.tight_layout()
-        st.pyplot(fig4)
-        plt.close()
-        st.divider()
-
-        # ── Cell 17: Boxplot outlier ──────────────────────────
-        st.markdown("##### Cell 17 — Deteksi Outlier dengan Boxplot")
-        st.code(
-            """fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
-sns.boxplot(x=df["harga"], ax=ax1)
-ax1.set_title("Deteksi Outlier Harga")
-sns.boxplot(x="tipe_bodi", y="harga", data=df, ax=ax2)
-ax2.set_title("Tipe Bodi vs Harga")
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.show()""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        fig5, (ax5a, ax5b) = plt.subplots(1, 2, figsize=(12, 4))
-        sns.boxplot(x=df["harga"], ax=ax5a, color="#2563eb")
-        ax5a.set_title("Deteksi Outlier Harga")
-        sns.boxplot(x="tipe_bodi", y="harga", data=df, ax=ax5b, palette="Set2")
-        ax5b.set_title("Tipe Bodi vs Harga")
-        ax5b.set_xticklabels(ax5b.get_xticklabels(), rotation=45)
-        plt.tight_layout()
-        st.pyplot(fig5)
-        plt.close()
-        st.divider()
-
-        # ── Cell 18: Linear Regression ────────────────────────
-        st.markdown("##### Cell 18 — Linear Regression")
-        st.code(
-            """from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-
-X = df[[
-    "ukuran_mesin","tenaga_mesin","berat_kosong",
-    "lebar","panjang","konsumsi_tol",
-    "tipe_bodi","jenis_bahan_bakar","penggerak_roda"
-]]
-y = df["harga"]
-
-X_train,X_test,y_train,y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-numeric_columns = ["ukuran_mesin","tenaga_mesin","berat_kosong","lebar","panjang","konsumsi_tol"]
-categorical_columns = ["tipe_bodi","jenis_bahan_bakar","penggerak_roda"]
-
-preprocessing = ColumnTransformer(transformers=[
-    ("scaler", StandardScaler(), numeric_columns),
-    ("ohe", OneHotEncoder(handle_unknown="ignore"), categorical_columns)
-])
-
-model = Pipeline(steps=[
-    ("preprocessing", preprocessing),
-    ("model", LinearRegression())
-])
-
-model.fit(X_train,y_train)
-y_pred = model.predict(X_test)
-
-print("Linear Regression")
-print("R2 Score : ", r2_score(y_test, y_pred))
-print("MAE Score : ", mean_absolute_error(y_test, y_pred))
-print("MSE Score : ", mean_squared_error(y_test, y_pred))""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        lr_info = model_info["perbandingan"]["Linear Regression"]
-        st.text(f"Linear Regression\nR2 Score :  {lr_info['r2']}\nMAE Score :  {lr_info['mae']}\nMSE Score :  {lr_info['mse']}")
-        st.divider()
-
-        # ── Cell 19: Decision Tree ────────────────────────────
-        st.markdown("##### Cell 19 — Decision Tree Regressor")
-        st.code(
-            """from sklearn.tree import DecisionTreeRegressor
-
-model = Pipeline(steps=[
-    ("preprocessing", preprocessing),
-    ("model", DecisionTreeRegressor(max_depth=5, random_state=42))
-])
-
-model.fit(X_train,y_train)
-y_pred = model.predict(X_test)
-
-print("Decision Tree")
-print("R2 Score : ", r2_score(y_test, y_pred))
-print("MAE Score : ", mean_absolute_error(y_test, y_pred))
-print("MSE Score : ", mean_squared_error(y_test, y_pred))""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        dt_info = model_info["perbandingan"]["Decision Tree"]
-        st.text(f"Decision Tree\nR2 Score :  {dt_info['r2']}\nMAE Score :  {dt_info['mae']}\nMSE Score :  {dt_info['mse']}")
-        st.divider()
-
-        # ── Cell 20: Random Forest ────────────────────────────
-        st.markdown("##### Cell 20 — Random Forest Regressor")
-        st.code(
-            """from sklearn.ensemble import RandomForestRegressor
-
-model = Pipeline(steps=[
-    ("preprocessing", preprocessing),
-    ("model", RandomForestRegressor(random_state=42))
-])
-
-model.fit(X_train,y_train)
-y_pred = model.predict(X_test)
-
-print("Random Forest")
-print("R2 Score : ", r2_score(y_test, y_pred))
-print("MAE Score : ", mean_absolute_error(y_test, y_pred))
-print("MSE Score : ", mean_squared_error(y_test, y_pred))""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        rf_info = model_info["perbandingan"]["Random Forest"]
-        st.text(f"Random Forest\nR2 Score :  {rf_info['r2']}\nMAE Score :  {rf_info['mae']}\nMSE Score :  {rf_info['mse']}")
-        st.divider()
-
-        # ── Cell 21: Cross Validation ─────────────────────────
-        st.markdown("##### Cell 21 — Cross Validation (5-Fold)")
-        st.code(
-            """from sklearn.model_selection import cross_val_score
-
-scores = cross_val_score(model, X_train, y_train, cv=5, scoring="r2")
-
-print("Score tiap fold :", scores)
-print("Mean Score :", scores.mean())""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        from sklearn.model_selection import cross_val_score as cvs
-        X_cv = df[model_info["semua_fitur"]]
-        y_cv = df["harga"]
-        from sklearn.model_selection import train_test_split as tts
-        Xtrcv, _, ytrcv, _ = tts(X_cv, y_cv, test_size=0.2, random_state=42)
-        cv_scores = cvs(model_info["model"], Xtrcv, ytrcv, cv=5, scoring="r2")
-        st.text(f"Score tiap fold : {cv_scores}\nMean Score : {cv_scores.mean()}")
-        st.divider()
-
-        # ── Cell 22: Save model ───────────────────────────────
-        st.markdown("##### Cell 22 — Simpan Model (.joblib)")
-        st.code(
-            """import joblib
-
-joblib.dump(model, "model_prediksi_mobil.joblib")""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        st.text("['model_prediksi_mobil.joblib']")
-        import io as _io2
-        import joblib
-        buf_dl = _io2.BytesIO()
-        joblib.dump(model_info["model"], buf_dl)
-        buf_dl.seek(0)
-        st.download_button("📥 Download model_prediksi_mobil.joblib", buf_dl,
-                           "model_prediksi_mobil.joblib", "application/octet-stream")
-        st.divider()
-
-        # ── Cell 23: Contoh prediksi ──────────────────────────
-        st.markdown("##### Cell 23 — Contoh Prediksi Data Baru")
-        st.code(
-            """import joblib
-import pandas as pd
-
-model = joblib.load("model_prediksi_mobil.joblib")
-
-data_baru = pd.DataFrame(
-    [["sedan","bensin","fwd",130,110,2500,65,170,30]],
-    columns=[
-        "tipe_bodi","jenis_bahan_bakar","penggerak_roda",
-        "ukuran_mesin","tenaga_mesin","berat_kosong",
-        "lebar","panjang","konsumsi_tol"
-    ]
-)
-
-prediksi = model.predict(data_baru)[0]
-
-print(f"Prediksi harga mobil : {prediksi:.0f} USD")
-rupiah = prediksi * 15000
-print(f"Harga: Rp {rupiah:,.0f}")""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        st.text("Prediksi harga mobil : 10826 USD\nHarga: Rp 162,397,000")
-        st.divider()
-
-        # ── Cell 24: Perbandingan prediksi vs asli ────────────
-        st.markdown("##### Cell 24 — Perbandingan Prediksi vs Harga Asli (5 Sample)")
-        st.code(
-            """# Ambil 5 sample acak dari dataset
-sample = df.sample(5, random_state=42)
-
-X_sample = sample[[
-    "ukuran_mesin","tenaga_mesin","berat_kosong",
-    "lebar","panjang","konsumsi_tol",
-    "tipe_bodi","jenis_bahan_bakar","penggerak_roda"
-]]
-
-prediksi = model.predict(X_sample)
-
-hasil = pd.DataFrame({
-    "Harga Asli (USD)": sample["harga"].values,
-    "Prediksi (USD)": prediksi.astype(int),
-    "Selisih (USD)": abs(sample["harga"].values - prediksi).astype(int)
-})
-
-print(hasil)""",
-            language="python"
-        )
-        st.markdown("**Output:**")
-        sample = df.sample(5, random_state=42)
-        X_samp = sample[model_info["semua_fitur"]]
-        pred_samp = model_info["model"].predict(X_samp)
-        hasil_samp = pd.DataFrame({
-            "Harga Asli (USD)": sample["harga"].values,
-            "Prediksi (USD)": pred_samp.astype(int),
-            "Selisih (USD)": abs(sample["harga"].values - pred_samp).astype(int)
-        })
-        st.dataframe(hasil_samp, use_container_width=True, hide_index=True)
-
-    # ── SUB TAB: GLOSARIUM ISTILAH ────────────────────────────
-    with sub_glosarium:
-        st.markdown("Penjelasan istilah teknis yang digunakan dalam aplikasi dan dataset ini.")
-        st.divider()
-
-        with st.expander("🔧 Ukuran Mesin"):
-            st.write(f"""
-            Ukuran mesin adalah angka yang menunjukkan seberapa besar kapasitas mesin sebuah mobil,
-            dengan satuan cc (cubic centimeter).
-
-            Semakin besar kapasitas mesinnya, semakin besar tenaga yang dihasilkan. Namun di sisi lain,
-            mesin yang lebih besar juga cenderung lebih boros bahan bakar dan membuat harga mobil lebih tinggi.
-            Istilah ini sering kita dengar dalam kehidupan sehari-hari, misalnya ketika seseorang menyebut
-            "mobil bermesin 1500 cc" atau "2000 cc".
-
-            Nilai yang dapat diisi: **{int(df['ukuran_mesin'].min())} hingga {int(df['ukuran_mesin'].max())} cc**
-            """)
-
-        with st.expander("🐎 Tenaga Mesin"):
-            st.write(f"""
-            Tenaga mesin adalah ukuran seberapa besar kekuatan yang mampu dihasilkan oleh mesin,
-            dengan satuan hp (horsepower) atau tenaga kuda.
-
-            Semakin tinggi nilai hp-nya, semakin responsif mobil saat berakselerasi. Mobil dengan tenaga
-            mesin yang besar umumnya lebih cepat dan lebih bertenaga, namun harganya juga cenderung lebih mahal.
-
-            Nilai yang dapat diisi: **{int(df['tenaga_mesin'].min())} hingga {int(df['tenaga_mesin'].max())} hp**
-            """)
-
-        with st.expander("⚖️ Berat Kosong"):
-            st.write(f"""
-            Berat kosong adalah bobot mobil dalam kondisi tanpa penumpang dan tanpa muatan apapun,
-            dengan satuan lbs (pounds). Sebagai referensi, 1 kg setara dengan sekitar 2,2 lbs.
-
-            Mobil yang lebih berat pada umumnya memiliki dimensi yang lebih besar, rangka yang lebih kokoh,
-            dan kelengkapan fitur yang lebih banyak, sehingga harganya pun cenderung lebih tinggi.
-
-            Nilai yang dapat diisi: **{int(df['berat_kosong'].min())} hingga {int(df['berat_kosong'].max())} lbs**
-            """)
-
-        with st.expander("📏 Lebar Mobil"):
-            st.write(f"""
-            Lebar mobil adalah jarak dari sisi kiri ke sisi kanan bodi kendaraan, tidak termasuk spion,
-            dengan satuan inch. Sebagai referensi, 1 inch setara dengan 2,54 cm.
-
-            Kendaraan dengan lebar yang lebih besar biasanya masuk dalam kategori kelas menengah ke atas.
-
-            Nilai yang dapat diisi: **{df['lebar'].min():.1f} hingga {df['lebar'].max():.1f} inch**
-            """)
-
-        with st.expander("📐 Panjang Mobil"):
-            st.write(f"""
-            Panjang mobil adalah jarak dari ujung bemper depan hingga ujung bemper belakang kendaraan,
-            dengan satuan inch.
-
-            Mobil yang lebih panjang biasanya memiliki ruang kabin yang lebih lega serta kapasitas bagasi
-            yang lebih besar.
-
-            Nilai yang dapat diisi: **{df['panjang'].min():.1f} hingga {df['panjang'].max():.1f} inch**
-            """)
-
-        with st.expander("⛽ Konsumsi BBM di Jalan Tol"):
-            st.write(f"""
-            Angka ini menunjukkan efisiensi bahan bakar sebuah mobil saat melaju di jalan tol,
-            dengan satuan MPG (miles per gallon). Semakin tinggi nilainya, semakin irit.
-
-            Nilai yang dapat diisi: **{int(df['konsumsi_tol'].min())} hingga {int(df['konsumsi_tol'].max())} MPG**
-            """)
-
-        with st.expander("🚙 Tipe Bodi"):
-            st.write("""
-            Tipe bodi adalah bentuk desain keseluruhan dari sebuah kendaraan:
-
-            **Convertible** — Kendaraan dengan atap yang dapat dibuka atau dilipat.
-
-            **Hardtop** — Kendaraan dengan atap keras permanen, umumnya tanpa pilar tengah.
-
-            **Hatchback** — Kendaraan kompak dengan ruang bagasi menyatu dengan kabin dan pintu di belakang.
-
-            **Sedan** — Tipe paling umum dengan tiga bagian terpisah: mesin, kabin, dan bagasi.
-
-            **Wagon** — Seperti sedan namun bagian belakang lebih panjang dan tinggi, kapasitas bagasi lebih besar.
-            """)
-
-        with st.expander("⛽ Jenis Bahan Bakar"):
-            st.write("""
-            **Gas** — Kendaraan menggunakan bensin, tipe paling umum untuk kendaraan penumpang.
-
-            **Diesel** — Kendaraan menggunakan solar. Lebih efisien untuk perjalanan jarak jauh
-            dan menghasilkan torsi besar pada putaran rendah.
-            """)
-
-        with st.expander("🔄 Penggerak Roda"):
-            st.write("""
-            **FWD (Front Wheel Drive)** — Tenaga disalurkan ke roda depan. Paling umum, efisien BBM.
-
-            **RWD (Rear Wheel Drive)** — Tenaga disalurkan ke roda belakang. Banyak digunakan pada kendaraan sport/mewah.
-
-            **4WD (Four Wheel Drive)** — Tenaga ke keempat roda. Cocok untuk medan berat, umum pada SUV/off-road.
-            """)
-
-        with st.expander("📊 Apa itu R² dan MAE?"):
-            st.write(f"""
-            **R² (R-squared) = {model_info['r2']:.3f}**
-            Menunjukkan seberapa baik model menjelaskan pola data. Nilai maksimal 1,0 = sempurna.
-            Model ini mampu menjelaskan **{model_info['r2']*100:.1f}%** pola harga dari data.
-
-            **MAE (Mean Absolute Error) = ${model_info['mae']:,.0f}**
-            Rata-rata selisih antara harga prediksi dan harga asli. Model ini dapat meleset sekitar
-            **${model_info['mae']:,.0f}** dari harga sebenarnya.
-            """)
-
 
 # ============================================================
 # TAB: PREDIKSI HARGA
@@ -1093,49 +474,937 @@ with tab_prediksi:
 
 
 # ============================================================
+# TAB: ANALISIS DATA (Dataset + Analisis + Glosarium Istilah)
+# ============================================================
+with tab_analisis:
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    from sklearn.model_selection import cross_val_score
+    import joblib
+    import io
+
+    st.title("📊 Analisis Data")
+    st.markdown("Eksplorasi dataset, visualisasi, perbandingan model, dan penjelasan istilah teknis.")
+
+    sub_dataset, sub_notebook, sub_glosarium = st.tabs([
+        "📋 Dataset",
+        "📓 Notebook",
+        "📚 Penjelasan Istilah",
+    ])
+
+    with sub_dataset:
+        st.markdown("### 📋 Tentang Dataset")
+        st.markdown("""
+        Dataset yang digunakan adalah **UCI Automobile Dataset (imports-85)**, 
+        berisi data spesifikasi teknis dan harga mobil dari berbagai merek.
+        """)
+
+        st.divider()
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Jumlah Data", f"{len(df_raw)} baris")
+        col2.metric("Jumlah Kolom", f"{len(df_raw.columns)} kolom")
+        col3.metric("Data Bersih", f"{len(df)} baris")
+
+        st.divider()
+
+        st.markdown("### Sumber Data")
+        st.markdown("""
+        | Info | Detail |
+        |---|---|
+        | **Nama Dataset** | Automobile Dataset |
+        | **Sumber** | UCI Machine Learning Repository |
+        | **Link** | https://archive.ics.uci.edu/dataset/10/automobile |
+        | **Tahun** | 1985 |
+        | **Target** | Harga mobil (USD) |
+        """)
+
+        st.divider()
+
+        # Tabel data bersih
+        st.markdown("### Data Bersih")
+        st.dataframe(df, use_container_width=True, hide_index=False)
+
+        # Tombol download
+        csv_data = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="⬇️ Download Dataset (CSV)",
+            data=csv_data,
+            file_name="automobile_clean.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    # ── SUB TAB: NOTEBOOK ────────────────────────────────────
+    with sub_notebook:
+        st.markdown("Semua kode dari Jupyter Notebook ditampilkan lengkap beserta outputnya.")
+
+        # ── Cell 1: Load data (head) ──────────────────────────
+        st.markdown("##### Cell 1 — Load Dataset")
+        st.code(
+            'import pandas as pd\n\ndf = pd.read_csv("imports-85.data", header=None)\ndf.head()',
+            language="python"
+        )
+        st.markdown("**Output:**")
+        st.dataframe(df_raw.head(), use_container_width=True)
+        st.divider()
+
+        # ── Cell 2: df (tampilkan semua) ──────────────────────
+        st.markdown("##### Cell 2 — Tampilkan Seluruh DataFrame")
+        st.code(
+            'import pandas as pd\n\ndf = pd.read_csv("imports-85.data", header=None)\ndf',
+            language="python"
+        )
+        st.markdown("**Output:**")
+        st.dataframe(df_raw, use_container_width=True)
+        st.divider()
+
+        # ── Cell 3: Rename kolom ──────────────────────────────
+        st.markdown("##### Cell 3 — Beri Nama Kolom")
+        st.code(
+            """df.columns = [
+                "simbol_risiko","kerugian_normal","merek","jenis_bahan_bakar","aspirasi",
+                "jumlah_pintu","tipe_bodi","penggerak_roda","letak_mesin",
+                "jarak_sumbu_roda","panjang","lebar","tinggi","berat_kosong","tipe_mesin",
+                "jumlah_silinder","ukuran_mesin","sistem_bahan_bakar","diameter_bore","langkah_piston",
+                "rasio_kompresi","tenaga_mesin","rpm_puncak","konsumsi_kota",
+                "konsumsi_tol","harga"
+            ]""",
+            language="python"
+        )
+        st.markdown("**Output:** *(tidak ada output, kolom diubah in-place)*")
+        st.divider()
+
+        # ── Cell 4: df.head() ─────────────────────────────────
+        st.markdown("##### Cell 4 — df.head()")
+        st.code("df.head()", language="python")
+        st.markdown("**Output:**")
+        st.dataframe(df_raw.head(), use_container_width=True)
+        st.divider()
+
+        # ── Cell 5: df.tail() ─────────────────────────────────
+        st.markdown("##### Cell 5 — df.tail()")
+        st.code("df.tail()", language="python")
+        st.markdown("**Output:**")
+        st.dataframe(df_raw.tail(), use_container_width=True)
+        st.divider()
+
+        # ── Cell 6: df.shape ──────────────────────────────────
+        st.markdown("##### Cell 6 — df.shape")
+        st.code("df.shape", language="python")
+        st.markdown("**Output:**")
+        st.text(f"({len(df_raw)}, {len(df_raw.columns)})")
+        st.divider()
+
+        # ── Cell 7: df.columns ────────────────────────────────
+        st.markdown("##### Cell 7 — df.columns")
+        st.code("df.columns", language="python")
+        st.markdown("**Output:**")
+        st.text("Index([" + ", ".join([f"'{c}'" for c in df_raw.columns]) + "], dtype='object')")
+        st.divider()
+
+        # ── Cell 8: df.info() ─────────────────────────────────
+        st.markdown("##### Cell 8 — df.info()")
+        st.code("df.info()", language="python")
+        st.markdown("**Output:**")
+        import io as _io
+        buf_info = _io.StringIO()
+        df_raw.info(buf=buf_info)
+        st.text(buf_info.getvalue())
+        st.divider()
+
+        # ── Cell 9: df.sample(5) ──────────────────────────────
+        st.markdown("##### Cell 9 — df.sample(5)")
+        st.code("df.sample(5)", language="python")
+        st.markdown("**Output:**")
+        st.dataframe(df_raw.sample(5, random_state=42), use_container_width=True)
+        st.divider()
+
+        # ── Cell 10: df.isna().sum() ──────────────────────────
+        st.markdown("##### Cell 10 — df.isna().sum()")
+        st.code("df.isna().sum()", language="python")
+        st.markdown("**Output:**")
+        st.text("\n".join([f"{k:<22} {v}" for k, v in df_raw.isna().sum().items()]) + "\ndtype: int64")
+        st.divider()
+
+        # ── Cell 11: Cek nilai '?' ────────────────────────────
+        st.markdown("##### Cell 11 — Cek Nilai '?'")
+        st.code('(df == "?").sum()', language="python")
+        st.markdown("**Output:**")
+        tanda_tanya = {
+            "simbol_risiko": 0, "kerugian_normal": 41, "merek": 0,
+            "jenis_bahan_bakar": 0, "aspirasi": 0, "jumlah_pintu": 2,
+            "tipe_bodi": 0, "penggerak_roda": 0, "letak_mesin": 0,
+            "jarak_sumbu_roda": 0, "panjang": 0, "lebar": 0, "tinggi": 0,
+            "berat_kosong": 0, "tipe_mesin": 0, "jumlah_silinder": 0,
+            "ukuran_mesin": 0, "sistem_bahan_bakar": 0, "diameter_bore": 4,
+            "langkah_piston": 4, "rasio_kompresi": 0, "tenaga_mesin": 2,
+            "rpm_puncak": 2, "konsumsi_kota": 0, "konsumsi_tol": 0, "harga": 4,
+        }
+        st.text("\n".join([f"{k:<22} {v}" for k, v in tanda_tanya.items()]) + "\ndtype: int64")
+        st.divider()
+
+        # ── Cell 12: Replace '?' → NaN ───────────────────────
+        st.markdown("##### Cell 12 — Replace '?' → NaN")
+        st.code(
+            'import numpy as np\n\ndf.replace("?", np.nan, inplace=True)',
+            language="python"
+        )
+        st.markdown("**Output:** *(tidak ada output, data diubah in-place)*")
+        st.divider()
+
+        # ── Cell 13: isna().sum() setelah replace ─────────────
+        st.markdown("##### Cell 13 — df.isna().sum() setelah Replace")
+        st.code("df.isna().sum()", language="python")
+        st.markdown("**Output:**")
+        st.text("\n".join([f"{k:<22} {v}" for k, v in tanda_tanya.items()]) + "\ndtype: int64")
+        st.divider()
+
+        # ── Cell 14: df.describe() ────────────────────────────
+        st.markdown("##### Cell 14 — df.describe()")
+        st.code("df.describe()", language="python")
+        st.markdown("**Output:**")
+        st.dataframe(df_raw.describe(), use_container_width=True)
+        st.divider()
+
+        # ── Cell 15: df.duplicated().sum() ───────────────────
+        st.markdown("##### Cell 15 — df.duplicated().sum()")
+        st.code("df.duplicated().sum()", language="python")
+        st.markdown("**Output:**")
+        st.text(str(df_raw.duplicated().sum()))
+        st.divider()
+
+        # ── Cell 16: Drop kolom & dropna ─────────────────────
+        st.markdown("##### Cell 16 — Preprocessing: Hapus Kolom & dropna")
+        st.code(
+            """df = df.drop(columns=["kerugian_normal"])  # buang kolom
+            df = df.dropna()""",
+            language="python"
+        )
+        st.markdown("**Output:** *(tidak ada output, data diubah in-place)*")
+        st.divider()
+
+        # ── Cell 17: Histplot distribusi harga ───────────────
+        st.markdown("##### Cell 17 — Visualisasi Distribusi Harga")
+        st.code(
+            """import seaborn as sns
+            import matplotlib.pyplot as plt
+
+            plt.figure(figsize=(10,6))
+            sns.histplot(df["harga"], kde=True, bins=20)
+            plt.title("Distribusi Harga Mobil")
+            plt.show()""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        fig1, ax1 = plt.subplots(figsize=(10, 6))
+        sns.histplot(df["harga"], kde=True, bins=20, ax=ax1)
+        ax1.set_title("Distribusi Harga Mobil")
+        plt.tight_layout()
+        st.pyplot(fig1)
+        plt.close()
+        st.divider()
+
+        # ── Cell 18: Scatter — ukuran_mesin ──────────────────
+        st.markdown("##### Cell 18 — Scatter: Ukuran Mesin vs Harga")
+        st.code(
+            """sns.scatterplot(x="ukuran_mesin", y="harga", data=df)
+            plt.title("Ukuran Mesin vs Harga")
+            plt.show()
+            plt.figure(figsize=(10,6))""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        fig2, ax2 = plt.subplots()
+        sns.scatterplot(x="ukuran_mesin", y="harga", data=df, ax=ax2)
+        ax2.set_title("Ukuran Mesin vs Harga")
+        plt.tight_layout()
+        st.pyplot(fig2)
+        plt.close()
+        st.divider()
+
+        # ── Cell 19: Scatter — tenaga_mesin ──────────────────
+        st.markdown("##### Cell 19 — Scatter: Tenaga Mesin vs Harga")
+        st.code(
+            """sns.scatterplot(x="tenaga_mesin", y="harga", data=df)
+            plt.title("Tenaga Mesin vs Harga")
+            plt.show()""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        fig3, ax3 = plt.subplots()
+        sns.scatterplot(x="tenaga_mesin", y="harga", data=df, ax=ax3)
+        ax3.set_title("Tenaga Mesin vs Harga")
+        plt.tight_layout()
+        st.pyplot(fig3)
+        plt.close()
+        st.divider()
+
+        # ── Cell 20: Scatter — berat_kosong ──────────────────
+        st.markdown("##### Cell 20 — Scatter: Berat Mobil vs Harga")
+        st.code(
+            """sns.scatterplot(x="berat_kosong", y="harga", data=df)
+            plt.title("Berat Mobil vs Harga")
+            plt.figure(figsize=(10,6))
+            plt.show()""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        fig4, ax4 = plt.subplots()
+        sns.scatterplot(x="berat_kosong", y="harga", data=df, ax=ax4)
+        ax4.set_title("Berat Mobil vs Harga")
+        plt.tight_layout()
+        st.pyplot(fig4)
+        plt.close()
+        st.divider()
+
+        # ── Cell 21: Scatter — konsumsi_tol ──────────────────
+        st.markdown("##### Cell 21 — Scatter: Konsumsi BBM Tol vs Harga")
+        st.code(
+            """sns.scatterplot(x="konsumsi_tol", y="harga", data=df)
+            plt.title("Konsumsi BBM Tol vs Harga")
+            plt.show()""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        fig5, ax5 = plt.subplots()
+        sns.scatterplot(x="konsumsi_tol", y="harga", data=df, ax=ax5)
+        ax5.set_title("Konsumsi BBM Tol vs Harga")
+        plt.tight_layout()
+        st.pyplot(fig5)
+        plt.close()
+        st.divider()
+
+        # ── Cell 22: Heatmap korelasi ─────────────────────────
+        st.markdown("##### Cell 22 — Heatmap Korelasi Antar Fitur")
+        st.code(
+            """corr = df.corr(numeric_only=True)
+
+            sns.heatmap(corr, annot=True)
+            plt.title("Korelasi Antar Fitur")
+            plt.show()""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        fig6, ax6 = plt.subplots(figsize=(10, 7))
+        corr = df.corr(numeric_only=True)
+        sns.heatmap(corr, annot=True, ax=ax6, annot_kws={"size": 7})
+        ax6.set_title("Korelasi Antar Fitur")
+        plt.tight_layout()
+        st.pyplot(fig6)
+        plt.close()
+        st.divider()
+
+        # ── Cell 23: Konversi kolom numerik ──────────────────
+        st.markdown("##### Cell 23 — Konversi Tipe Data Kolom Numerik")
+        st.code(
+            """kolom_numerik = [
+                "diameter_bore","langkah_piston",
+                "tenaga_mesin","rpm_puncak","harga"
+            ]
+
+            for col in kolom_numerik:
+                df[col] = pd.to_numeric(df[col])""",
+            language="python"
+        )
+        st.markdown("**Output:** *(tidak ada output, tipe data diubah in-place)*")
+        st.divider()
+
+        # ── Cell 24: df.dtypes ────────────────────────────────
+        st.markdown("##### Cell 24 — df.dtypes")
+        st.code("df.dtypes", language="python")
+        st.markdown("**Output:**")
+        st.text(str(df.dtypes))
+        st.divider()
+
+        # ── Cell 25: Boxplot outlier harga ───────────────────
+        st.markdown("##### Cell 25 — Deteksi Outlier Harga (Boxplot)")
+        st.code(
+            """sns.boxplot(x=df["harga"])
+            plt.title("Deteksi Outlier Harga")
+            plt.show()""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        fig7, ax7 = plt.subplots()
+        sns.boxplot(x=df["harga"], ax=ax7)
+        ax7.set_title("Deteksi Outlier Harga")
+        plt.tight_layout()
+        st.pyplot(fig7)
+        plt.close()
+        st.divider()
+
+        # ── Cell 26: Boxplot tipe bodi vs harga ──────────────
+        st.markdown("##### Cell 26 — Tipe Bodi vs Harga (Boxplot)")
+        st.code(
+            """sns.boxplot(x="tipe_bodi", y="harga", data=df)
+            plt.title("Tipe Bodi vs Harga")
+            plt.xticks(rotation=45)
+            plt.show()""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        fig8, ax8 = plt.subplots()
+        sns.boxplot(x="tipe_bodi", y="harga", data=df, ax=ax8)
+        ax8.set_title("Tipe Bodi vs Harga")
+        ax8.set_xticklabels(ax8.get_xticklabels(), rotation=45)
+        plt.tight_layout()
+        st.pyplot(fig8)
+        plt.close()
+        st.divider()
+
+        # ── Cell 27: Heatmap korelasi ke harga ───────────────
+        st.markdown("##### Cell 27 — Korelasi Fitur terhadap Harga")
+        st.code(
+            """plt.figure(figsize=(6,8))
+
+            corr = df.corr(numeric_only=True)
+
+            sns.heatmap(
+                corr.loc[:, ["harga"]].sort_values(by="harga", ascending=False),
+                annot=True,
+                cmap="coolwarm"
+            )
+
+            plt.title("Korelasi terhadap Harga")
+            plt.show()""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        fig9, ax9 = plt.subplots(figsize=(4, 7))
+        corr_h = df.corr(numeric_only=True)[["harga"]].sort_values(by="harga", ascending=False)
+        sns.heatmap(corr_h, annot=True, fmt=".2f", cmap="coolwarm", ax=ax9)
+        ax9.set_title("Korelasi terhadap Harga")
+        plt.tight_layout()
+        st.pyplot(fig9)
+        plt.close()
+        st.divider()
+
+        # ── Cell 28: Info merek ───────────────────────────────
+        st.markdown("##### Cell 28 — Info Merek")
+        st.code(
+            """print("Jumlah data:", len(df))
+            print("Jumlah merek unik:", df["merek"].nunique())
+            print(df["merek"].value_counts())""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        merek_counts = df["merek"].value_counts()
+        output_merek = f"Jumlah data: {len(df)}\nJumlah merek unik: {df['merek'].nunique()}\n"
+        output_merek += "merek\n" + "\n".join([f"{m:<20} {c}" for m, c in merek_counts.items()])
+        output_merek += "\nName: count, dtype: int64"
+        st.text(output_merek)
+        st.divider()
+
+        # ── Cell 29: Linear Regression (tanpa merek, R2 only) ─
+        st.markdown("##### Cell 29 — Linear Regression (Eksperimen Tanpa Merek)")
+        st.code(
+            """from sklearn.pipeline import Pipeline
+            from sklearn.compose import ColumnTransformer
+            from sklearn.preprocessing import StandardScaler, OneHotEncoder
+            from sklearn.linear_model import LinearRegression
+            from sklearn.model_selection import train_test_split
+            from sklearn.metrics import r2_score
+
+            # fitur
+            X1 = df[[
+                "ukuran_mesin",
+                "tenaga_mesin",
+                "berat_kosong",
+                "lebar",
+                "panjang",
+                "konsumsi_tol",
+                "tipe_bodi",
+                "jenis_bahan_bakar",
+                "penggerak_roda"
+            ]]
+
+            y = df["harga"]
+
+            X_train1, X_test1, y_train, y_test = train_test_split(
+                X1, y, test_size=0.2, random_state=42
+            )
+
+            num_cols = [
+                "ukuran_mesin","tenaga_mesin","berat_kosong",
+                "lebar","panjang","konsumsi_tol"
+            ]
+
+            cat_cols1 = [
+                "tipe_bodi","jenis_bahan_bakar","penggerak_roda"
+            ]
+
+            pre1 = ColumnTransformer([
+                ("num", StandardScaler(), num_cols),
+                ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols1)
+            ])
+
+            model1 = Pipeline([
+                ("pre", pre1),
+                ("model", LinearRegression())
+            ])
+
+            model1.fit(X_train1, y_train)
+            y_pred1 = model1.predict(X_test1)
+
+            r2_1 = r2_score(y_test, y_pred1)
+            print("R2 tanpa merek:", r2_1)""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        lr_info = model_info["perbandingan"]["Linear Regression"]
+        st.text(f"R2 tanpa merek: {lr_info['r2']}")
+        st.divider()
+
+        # ── Cell 30: Linear Regression (full metrics) ────────
+        st.markdown("##### Cell 30 — Linear Regression (Full Metrics)")
+        st.code(
+            """from sklearn.linear_model import LinearRegression
+            from sklearn.model_selection import train_test_split
+            from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+            from sklearn.preprocessing import StandardScaler, OneHotEncoder
+            from sklearn.pipeline import Pipeline
+            from sklearn.compose import ColumnTransformer
+
+            X = df[[
+                "ukuran_mesin","tenaga_mesin","berat_kosong",
+                "lebar","panjang","konsumsi_tol",
+                "tipe_bodi","jenis_bahan_bakar","penggerak_roda"
+            ]]
+
+            y = df["harga"]
+
+            X_train,X_test,y_train,y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
+
+            numeric_columns = [
+                "ukuran_mesin","tenaga_mesin","berat_kosong",
+                "lebar","panjang","konsumsi_tol"
+            ]
+
+            categorical_columns = [
+                "tipe_bodi","jenis_bahan_bakar","penggerak_roda"
+            ]
+
+            preprocessing = ColumnTransformer(
+                transformers=[
+                    ("scaler", StandardScaler(), numeric_columns),
+                    ("ohe", OneHotEncoder(handle_unknown="ignore"), categorical_columns)
+                ]
+            )
+
+            model = Pipeline(
+                steps=[
+                    ("preprocessing", preprocessing),
+                    ("model", LinearRegression())
+                ]
+            )
+
+            model.fit(X_train,y_train)
+            y_pred = model.predict(X_test)
+
+            print("Linear Regression")
+            print("R2 Score : ", r2_score(y_test, y_pred))
+            print("MAE Score : ", mean_absolute_error(y_test, y_pred))
+            print("MSE Score : ", mean_squared_error(y_test, y_pred))""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        lr_info = model_info["perbandingan"]["Linear Regression"]
+        st.text(f"Linear Regression\nR2 Score :  {lr_info['r2']}\nMAE Score :  {lr_info['mae']}\nMSE Score :  {lr_info['mse']}")
+        st.divider()
+
+        # ── Cell 31: Decision Tree ────────────────────────────
+        st.markdown("##### Cell 31 — Decision Tree Regressor")
+        st.code(
+            """from sklearn.tree import DecisionTreeRegressor
+            from sklearn.model_selection import train_test_split
+            from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+            from sklearn.preprocessing import StandardScaler, OneHotEncoder
+            from sklearn.pipeline import Pipeline
+            from sklearn.compose import ColumnTransformer
+
+            X = df[[
+                "ukuran_mesin","tenaga_mesin","berat_kosong",
+                "lebar","panjang","konsumsi_tol",
+                "tipe_bodi","jenis_bahan_bakar","penggerak_roda"
+            ]]
+
+            y = df["harga"]
+
+            X_train,X_test,y_train,y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
+
+            numeric_columns = [
+                "ukuran_mesin","tenaga_mesin","berat_kosong",
+                "lebar","panjang","konsumsi_tol"
+            ]
+
+            categorical_columns = [
+                "tipe_bodi","jenis_bahan_bakar","penggerak_roda"
+            ]
+
+            preprocessing = ColumnTransformer(
+                transformers=[
+                    ("scaler", StandardScaler(), numeric_columns),
+                    ("ohe", OneHotEncoder(handle_unknown="ignore"), categorical_columns)
+                ]
+            )
+
+            model = Pipeline(
+                steps=[
+                    ("preprocessing", preprocessing),
+                    ("model", DecisionTreeRegressor(max_depth=5, random_state=42))
+                ]
+            )
+
+            model.fit(X_train,y_train)
+            y_pred = model.predict(X_test)
+
+            print("Decision Tree")
+            print("R2 Score : ", r2_score(y_test, y_pred))
+            print("MAE Score : ", mean_absolute_error(y_test, y_pred))
+            print("MSE Score : ", mean_squared_error(y_test, y_pred))""",
+                        language="python"
+                    )
+        st.markdown("**Output:**")
+        dt_info = model_info["perbandingan"]["Decision Tree"]
+        st.text(f"Decision Tree\nR2 Score :  {dt_info['r2']}\nMAE Score :  {dt_info['mae']}\nMSE Score :  {dt_info['mse']}")
+        st.divider()
+
+        # ── Cell 32: Random Forest ────────────────────────────
+        st.markdown("##### Cell 32 — Random Forest Regressor")
+        st.code(
+                        """from sklearn.ensemble import RandomForestRegressor
+            from sklearn.model_selection import train_test_split
+            from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+            from sklearn.preprocessing import StandardScaler, OneHotEncoder
+            from sklearn.pipeline import Pipeline
+            from sklearn.compose import ColumnTransformer
+
+            X = df[[
+                "ukuran_mesin","tenaga_mesin","berat_kosong",
+                "lebar","panjang","konsumsi_tol",
+                "tipe_bodi","jenis_bahan_bakar","penggerak_roda"
+            ]]
+
+            y = df["harga"]
+
+            X_train,X_test,y_train,y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
+
+            numeric_columns = [
+                "ukuran_mesin","tenaga_mesin","berat_kosong",
+                "lebar","panjang","konsumsi_tol"
+            ]
+
+            categorical_columns = [
+                "tipe_bodi","jenis_bahan_bakar","penggerak_roda"
+            ]
+
+            preprocessing = ColumnTransformer(
+                transformers=[
+                    ("scaler", StandardScaler(), numeric_columns),
+                    ("ohe", OneHotEncoder(handle_unknown="ignore"), categorical_columns)
+                ]
+            )
+
+            model = Pipeline(
+                steps=[
+                    ("preprocessing", preprocessing),
+                    ("model", RandomForestRegressor(random_state=42))
+                ]
+            )
+
+            model.fit(X_train,y_train)
+            y_pred = model.predict(X_test)
+
+            print("Random Forest")
+            print("R2 Score : ", r2_score(y_test, y_pred))
+            print("MAE Score : ", mean_absolute_error(y_test, y_pred))
+            print("MSE Score : ", mean_squared_error(y_test, y_pred))""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        rf_info = model_info["perbandingan"]["Random Forest"]
+        st.text(f"Random Forest\nR2 Score :  {rf_info['r2']}\nMAE Score :  {rf_info['mae']}\nMSE Score :  {rf_info['mse']}")
+        st.divider()
+
+        # ── Cell 33: Cross Validation ─────────────────────────
+        st.markdown("##### Cell 33 — Cross Validation (5-Fold)")
+        st.code(
+            """from sklearn.model_selection import cross_val_score
+            scores = cross_val_score(model, X_train, y_train, cv=5, scoring="r2")
+
+            print("Score tiap fold :", scores)
+            print("Mean Score :", scores.mean())""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        from sklearn.model_selection import cross_val_score as cvs
+        X_cv = df[model_info["semua_fitur"]]
+        y_cv = df["harga"]
+        from sklearn.model_selection import train_test_split as tts
+        Xtrcv, _, ytrcv, _ = tts(X_cv, y_cv, test_size=0.2, random_state=42)
+        cv_scores = cvs(model_info["model"], Xtrcv, ytrcv, cv=5, scoring="r2")
+        st.text(f"Score tiap fold : {cv_scores}\nMean Score : {cv_scores.mean()}")
+        st.divider()
+
+        # ── Cell 34: Save model ───────────────────────────────
+        st.markdown("##### Cell 34 — Simpan Model (.joblib)")
+        st.code(
+            """import joblib
+            joblib.dump(model, "model_prediksi_mobil.joblib")""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        st.text("['model_prediksi_mobil.joblib']")
+        import io as _io2
+        import joblib
+        buf_dl = _io2.BytesIO()
+        joblib.dump(model_info["model"], buf_dl)
+        buf_dl.seek(0)
+        st.download_button("📥 Download model_prediksi_mobil.joblib", buf_dl,
+                           "model_prediksi_mobil.joblib", "application/octet-stream")
+        st.divider()
+
+        # ── Cell 35: Contoh prediksi ──────────────────────────
+        st.markdown("##### Cell 35 — Contoh Prediksi Data Baru")
+        st.code(
+            """import joblib
+            import pandas as pd
+
+            model = joblib.load("model_prediksi_mobil.joblib")
+
+            data_baru = pd.DataFrame(
+                [["sedan","bensin","fwd",130,110,2500,65,170,30]],
+                columns=[
+                    "tipe_bodi","jenis_bahan_bakar","penggerak_roda",
+                    "ukuran_mesin","tenaga_mesin","berat_kosong",
+                    "lebar","panjang","konsumsi_tol"
+                ]
+            )
+
+            prediksi = model.predict(data_baru)[0]
+
+            print(f"Prediksi harga mobil : {prediksi:.0f} USD")
+            rupiah = prediksi * 15000
+            print(f"Harga: Rp {rupiah:,.0f}")""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        st.text("Prediksi harga mobil : 10826 USD\nHarga: Rp 162,397,000")
+        st.divider()
+
+        # ── Cell 36: Perbandingan prediksi vs asli ────────────
+        st.markdown("##### Cell 36 — Perbandingan Prediksi vs Harga Asli (5 Sample)")
+        st.code(
+            """# Ambil 5 sample acak dari dataset
+            sample = df.sample(5, random_state=42)
+
+            # Input hanya 9 kolom yang dipakai model
+            X_sample = sample[[
+                "ukuran_mesin", "tenaga_mesin", "berat_kosong",
+                "lebar", "panjang", "konsumsi_tol",
+                "tipe_bodi", "jenis_bahan_bakar", "penggerak_roda"
+            ]]
+
+            # Prediksi
+            prediksi = model.predict(X_sample)
+
+            # Bandingkan
+            hasil = pd.DataFrame({
+                "Harga Asli (USD)": sample["harga"].values,
+                "Prediksi (USD)": prediksi.astype(int),
+                "Selisih (USD)": abs(sample["harga"].values - prediksi).astype(int)
+            })
+
+            print(hasil)""",
+            language="python"
+        )
+        st.markdown("**Output:**")
+        sample = df.sample(5, random_state=42)
+        X_samp = sample[model_info["semua_fitur"]]
+        pred_samp = model_info["model"].predict(X_samp)
+        hasil_samp = pd.DataFrame({
+            "Harga Asli (USD)": sample["harga"].values,
+            "Prediksi (USD)": pred_samp.astype(int),
+            "Selisih (USD)": abs(sample["harga"].values - pred_samp).astype(int)
+        })
+        st.dataframe(hasil_samp, use_container_width=True, hide_index=True)
+        st.divider()
+
+    # ── SUB TAB: GLOSARIUM ISTILAH ────────────────────────────
+    with sub_glosarium:
+        st.markdown("Penjelasan istilah teknis yang digunakan dalam aplikasi dan dataset ini.")
+        st.divider()
+
+        with st.expander("🔧 Ukuran Mesin"):
+            st.write(f"""
+            Ukuran mesin adalah angka yang menunjukkan seberapa besar kapasitas mesin sebuah mobil,
+            dengan satuan cc (cubic centimeter).
+
+            Semakin besar kapasitas mesinnya, semakin besar tenaga yang dihasilkan. Namun di sisi lain,
+            mesin yang lebih besar juga cenderung lebih boros bahan bakar dan membuat harga mobil lebih tinggi.
+            Istilah ini sering kita dengar dalam kehidupan sehari-hari, misalnya ketika seseorang menyebut
+            "mobil bermesin 1500 cc" atau "2000 cc".
+
+            Nilai yang dapat diisi: **{int(df['ukuran_mesin'].min())} hingga {int(df['ukuran_mesin'].max())} cc**
+            """)
+
+        with st.expander("🐎 Tenaga Mesin"):
+            st.write(f"""
+            Tenaga mesin adalah ukuran seberapa besar kekuatan yang mampu dihasilkan oleh mesin,
+            dengan satuan hp (horsepower) atau tenaga kuda.
+
+            Semakin tinggi nilai hp-nya, semakin responsif mobil saat berakselerasi. Mobil dengan tenaga
+            mesin yang besar umumnya lebih cepat dan lebih bertenaga, namun harganya juga cenderung lebih mahal.
+
+            Nilai yang dapat diisi: **{int(df['tenaga_mesin'].min())} hingga {int(df['tenaga_mesin'].max())} hp**
+            """)
+
+        with st.expander("⚖️ Berat Kosong"):
+            st.write(f"""
+            Berat kosong adalah bobot mobil dalam kondisi tanpa penumpang dan tanpa muatan apapun,
+            dengan satuan lbs (pounds). Sebagai referensi, 1 kg setara dengan sekitar 2,2 lbs.
+
+            Mobil yang lebih berat pada umumnya memiliki dimensi yang lebih besar, rangka yang lebih kokoh,
+            dan kelengkapan fitur yang lebih banyak, sehingga harganya pun cenderung lebih tinggi.
+
+            Nilai yang dapat diisi: **{int(df['berat_kosong'].min())} hingga {int(df['berat_kosong'].max())} lbs**
+            """)
+
+        with st.expander("📏 Lebar Mobil"):
+            st.write(f"""
+            Lebar mobil adalah jarak dari sisi kiri ke sisi kanan bodi kendaraan, tidak termasuk spion,
+            dengan satuan inch. Sebagai referensi, 1 inch setara dengan 2,54 cm.
+
+            Kendaraan dengan lebar yang lebih besar biasanya masuk dalam kategori kelas menengah ke atas.
+
+            Nilai yang dapat diisi: **{df['lebar'].min():.1f} hingga {df['lebar'].max():.1f} inch**
+            """)
+
+        with st.expander("📐 Panjang Mobil"):
+            st.write(f"""
+            Panjang mobil adalah jarak dari ujung bemper depan hingga ujung bemper belakang kendaraan,
+            dengan satuan inch.
+
+            Mobil yang lebih panjang biasanya memiliki ruang kabin yang lebih lega serta kapasitas bagasi
+            yang lebih besar.
+
+            Nilai yang dapat diisi: **{df['panjang'].min():.1f} hingga {df['panjang'].max():.1f} inch**
+            """)
+
+        with st.expander("⛽ Konsumsi BBM di Jalan Tol"):
+            st.write(f"""
+            Angka ini menunjukkan efisiensi bahan bakar sebuah mobil saat melaju di jalan tol,
+            dengan satuan MPG (miles per gallon). Semakin tinggi nilainya, semakin irit.
+
+            Nilai yang dapat diisi: **{int(df['konsumsi_tol'].min())} hingga {int(df['konsumsi_tol'].max())} MPG**
+            """)
+
+        with st.expander("🚙 Tipe Bodi"):
+            st.write("""
+            Tipe bodi adalah bentuk desain keseluruhan dari sebuah kendaraan:
+
+            **Convertible** — Kendaraan dengan atap yang dapat dibuka atau dilipat.
+
+            **Hardtop** — Kendaraan dengan atap keras permanen, umumnya tanpa pilar tengah.
+
+            **Hatchback** — Kendaraan kompak dengan ruang bagasi menyatu dengan kabin dan pintu di belakang.
+
+            **Sedan** — Tipe paling umum dengan tiga bagian terpisah: mesin, kabin, dan bagasi.
+
+            **Wagon** — Seperti sedan namun bagian belakang lebih panjang dan tinggi, kapasitas bagasi lebih besar.
+            """)
+
+        with st.expander("⛽ Jenis Bahan Bakar"):
+            st.write("""
+            **Gas** — Kendaraan menggunakan bensin, tipe paling umum untuk kendaraan penumpang.
+
+            **Diesel** — Kendaraan menggunakan solar. Lebih efisien untuk perjalanan jarak jauh
+            dan menghasilkan torsi besar pada putaran rendah.
+            """)
+
+        with st.expander("Penggerak Roda"):
+            st.write("""
+            **FWD (Front Wheel Drive)** — Tenaga disalurkan ke roda depan. Paling umum, efisien BBM.
+
+            **RWD (Rear Wheel Drive)** — Tenaga disalurkan ke roda belakang. Banyak digunakan pada kendaraan sport/mewah.
+
+            **4WD (Four Wheel Drive)** — Tenaga ke keempat roda. Cocok untuk medan berat, umum pada SUV/off-road.
+            """)
+
+
+
+# ============================================================
 # TAB: TENTANG SAYA
 # ============================================================
 with tab_tentang:
     col_foto, col_bio = st.columns([1, 2])
+
     with col_foto:
-        st.markdown("""
-        <div style="
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #1a3a6b, #2563eb);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 64px;
-            margin: 0 auto;
-        ">👤</div>
-        """, unsafe_allow_html=True)
+        from PIL import Image
+        import base64
+        import os
+        from io import BytesIO
+
+        foto_path = "19012.jpg"  # sesuaikan nama file foto kamu
+
+        if os.path.exists(foto_path):
+            img = Image.open(foto_path)
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            img_b64 = base64.b64encode(buffer.getvalue()).decode()
+
+            st.markdown(f"""
+            <div style="
+                width: 140px;
+                height: 140px;
+                border-radius: 50%;
+                overflow: hidden;
+                margin: 0 auto;
+                border: 3px solid #2563eb;
+            ">
+                <img src="data:image/png;base64,{img_b64}" style="
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                "/>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="
+                width: 140px;
+                height: 140px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #1a3a6b, #2563eb);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 64px;
+                margin: 0 auto;
+            ">👤</div>
+            """, unsafe_allow_html=True)
 
     with col_bio:
         st.markdown("""
         ### Alecia Febriana
-        **Jurusan Rekayasa Perangat Lunak**
-        SMKN 1 PURBALINGGA
+        **Jurusan Rekayasa Perangat Lunak**  
+        SMK Negeri 1 Purbalingga
 
-        📧 febrianaalecia@gmail.com
-        🐙 github.com/username
+        📧 febrianaalecia@gmail.com  
+        🐙 github.com/aleciafbri
         """)
 
     st.divider()
 
-    st.subheader("📌 Tentang Proyek Ini")
+    st.subheader("Tentang Proyek Ini")
     st.markdown(f"""
-    Aplikasi **Car Price Predictor** dibuat sebagai bagian dari tugas/proyek pembelajaran
-    Machine Learning
+    Aplikasi **Car Price Predictor** dibuat sebagai bagian dari tugas/proyek Machine Learning
     """)
-
-    st.divider()
-    st.subheader("🛠️ Teknologi yang Digunakan")
-    col_t1, col_t2, col_t3 = st.columns(3)
-    col_t1.info("🐍 Python")
-    col_t1.info("🎈 Streamlit")
-    col_t2.info("🤖 Scikit-learn")
-    col_t2.info("🐼 Pandas & NumPy")
-    col_t3.info("📊 Matplotlib & Seaborn")
-    col_t3.info("📈 Plotly Express")
