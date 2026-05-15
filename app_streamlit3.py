@@ -26,24 +26,310 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown("""
+st.html("""
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+:root {
+    --brand: #22d3ee;
+    --brand-2: #34d399;
+    --brand-glow: rgba(34,211,238,0.45);
+    --surface: #07070a;
+    --panel: #131318;
+    --panel-2: #1a1a21;
+    --border: rgba(255,255,255,0.07);
+    --border-strong: rgba(255,255,255,0.13);
+    --text: #e7e7ea;
+    --text-muted: #a1a1aa;
+    --text-dim: #71717a;
+}
+
+html, body, [class*="css"] { font-family: 'Inter', system-ui, sans-serif; }
+
+/* APP SHELL */
+.stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+    background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(34,211,238,0.10), transparent 60%),
+        radial-gradient(900px 500px at 100% 0%, rgba(52,211,153,0.06), transparent 60%),
+        linear-gradient(180deg, #0a0a10 0%, #07070a 100%) !important;
+    color: var(--text) !important;
+    font-feature-settings: 'cv02','cv03','cv04','cv11','ss01','ss03';
+}
+[data-testid="stHeader"] { background: transparent !important; backdrop-filter: blur(8px); }
+.block-container { padding-top: 3rem !important; max-width: 1200px !important; }
+
+h1, h2, h3, h4, h5 { color: #fafafa !important; letter-spacing: -0.02em !important; font-weight: 700 !important; }
+h1 { font-size: 2.4rem !important; line-height: 1.15 !important; background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+h2 { font-size: 1.6rem !important; }
+h3 { font-size: 1.2rem !important; }
+p, span, label, li, div { color: var(--text); }
+
+/* SIDEBAR */
 [data-testid="stSidebar"] {
-    background-color: #1a3a6b;
+    background: linear-gradient(180deg, #0a0e1a 0%, #06070d 100%) !important;
+    border-right: 1px solid var(--border) !important;
+    box-shadow: inset -1px 0 0 rgba(34,211,238,0.05);
 }
-[data-testid="stSidebar"] * {
-    color: white !important;
+[data-testid="stSidebar"] > div { padding-top: 1rem !important; }
+[data-testid="stSidebar"] * { color: #d4d4d8; font-family: 'Inter', sans-serif !important; }
+[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #fafafa !important; -webkit-text-fill-color: #fafafa !important; }
+[data-testid="stSidebar"] hr { border-color: var(--border) !important; opacity: 1 !important; margin: 0.5rem 0 !important; }
+[data-testid="stSidebar"] input { color: #0a0e1a !important; }
+
+/* Sidebar custom blocks */
+.lv-brand {
+    display: flex; flex-direction: column; align-items: center; padding: 0.5rem 0 1.2rem;
+    border-bottom: 1px solid var(--border); margin-bottom: 1.2rem;
 }
-[data-testid="stSidebar"] input {
-    color: #1a3a6b !important;
+.lv-brand-logo {
+    width: 64px; height: 64px; border-radius: 18px;
+    background: linear-gradient(135deg, #22d3ee 0%, #0ea5e9 60%, #1e3a8a 100%);
+    display: grid; place-items: center;
+    box-shadow: 0 14px 40px -12px rgba(34,211,238,0.55), inset 0 1px 0 rgba(255,255,255,0.25);
+    margin-bottom: 0.85rem;
+    position: relative;
 }
-[data-testid="stSidebar"] .stMarkdown h1,
-[data-testid="stSidebar"] .stMarkdown h2,
-[data-testid="stSidebar"] .stMarkdown h3 {
-    color: white !important;
+.lv-brand-logo::after {
+    content: ""; position: absolute; inset: -2px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.6), transparent 50%);
+    z-index: -1; filter: blur(10px); opacity: 0.7;
 }
+.lv-brand-name { font-size: 1.15rem; font-weight: 700; color: #fafafa; letter-spacing: -0.01em; }
+.lv-brand-tag { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.18em; text-transform: uppercase; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+
+.lv-section-title { font-size: 0.68rem; font-weight: 700; color: var(--text-dim); letter-spacing: 0.22em; text-transform: uppercase; margin: 0.5rem 0 1rem; }
+
+.lv-step { display: flex; gap: 12px; margin-bottom: 1.1rem; align-items: flex-start; }
+.lv-step-num {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px;
+    background: rgba(34,211,238,0.10); border: 1px solid rgba(34,211,238,0.25);
+    color: var(--brand); font-size: 0.72rem; font-weight: 700;
+    display: grid; place-items: center; font-family: 'JetBrains Mono', monospace;
+}
+.lv-step-text { font-size: 0.82rem; color: #d4d4d8; line-height: 1.5; }
+.lv-step-text b { color: #fafafa; font-weight: 600; }
+
+.lv-stats {
+    margin-top: 1rem; padding: 1rem; border-radius: 14px;
+    background: linear-gradient(180deg, rgba(34,211,238,0.06), rgba(34,211,238,0.0));
+    border: 1px solid var(--border-strong);
+}
+.lv-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+.lv-stat-row + .lv-stat-row { border-top: 1px dashed var(--border); }
+.lv-stat-k { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+.lv-stat-v { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--brand); font-weight: 700; }
+
+.lv-foot { margin-top: 1.2rem; text-align: center; font-size: 0.68rem; color: var(--text-dim); letter-spacing: 0.1em; }
+
+/* TABS — pill nav with glow */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 6px;
+    background: linear-gradient(180deg, rgba(20,20,28,0.85), rgba(14,14,20,0.85));
+    padding: 8px;
+    border-radius: 16px;
+    border: 1px solid var(--border-strong);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px -12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+    margin-bottom: 1.5rem;
+}
+.stTabs [data-baseweb="tab"] {
+    background: transparent !important; border-radius: 10px !important;
+    color: var(--text-muted) !important; font-weight: 600 !important;
+    padding: 0.65rem 1.4rem !important; border: none !important;
+    font-size: 0.92rem !important;
+    transition: all 0.2s ease;
+}
+.stTabs [data-baseweb="tab"]:hover { color: #fafafa !important; background: rgba(255,255,255,0.04) !important; }
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(180deg, rgba(34,211,238,0.18), rgba(34,211,238,0.06)) !important;
+    color: var(--brand) !important;
+    box-shadow: 0 0 0 1px rgba(34,211,238,0.35), 0 8px 24px -10px var(--brand-glow);
+}
+.stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display: none !important; }
+
+/* INPUTS */
+.stTextInput input, .stNumberInput input, .stSelectbox > div > div, .stTextArea textarea {
+    background: linear-gradient(180deg, rgba(26,26,33,0.9), rgba(19,19,24,0.9)) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 12px !important;
+    color: #fafafa !important;
+    height: 48px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0.95rem !important;
+    transition: all 0.2s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.stTextInput input:focus, .stNumberInput input:focus {
+    border-color: var(--brand) !important;
+    box-shadow: 0 0 0 4px rgba(34,211,238,0.15), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    outline: none !important;
+}
+.stSelectbox > div > div { color: #fafafa !important; }
+label, .stNumberInput label, .stSelectbox label, .stTextInput label {
+    color: var(--text-muted) !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.5rem !important;
+}
+.stNumberInput button {
+    background: rgba(255,255,255,0.04) !important;
+    border-color: var(--border-strong) !important;
+    color: var(--text-muted) !important;
+    height: 48px !important;
+}
+.stNumberInput button:hover { background: rgba(34,211,238,0.1) !important; color: var(--brand) !important; }
+
+/* BUTTONS */
+.stButton > button, .stDownloadButton > button {
+    background: linear-gradient(180deg, rgba(26,26,33,0.9), rgba(19,19,24,0.9)) !important;
+    color: #fafafa !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    height: 48px !important;
+    transition: all 0.18s ease;
+}
+.stButton > button:hover, .stDownloadButton > button:hover {
+    background: rgba(34,211,238,0.08) !important;
+    border-color: rgba(34,211,238,0.5) !important;
+    color: var(--brand) !important;
+    transform: translateY(-1px);
+}
+
+/* PRIMARY: big glowing predict button */
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #22d3ee 0%, #0ea5e9 50%, #06b6d4 100%) !important;
+    color: #04131a !important;
+    border: none !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    letter-spacing: 0.04em !important;
+    height: 58px !important;
+    border-radius: 14px !important;
+    box-shadow:
+        0 18px 40px -10px var(--brand-glow),
+        inset 0 1px 0 rgba(255,255,255,0.5),
+        inset 0 -2px 0 rgba(0,0,0,0.15) !important;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+}
+.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #67e8f9 0%, #22d3ee 50%, #0ea5e9 100%) !important;
+    color: #04131a !important;
+    transform: translateY(-2px);
+    box-shadow:
+        0 24px 48px -10px var(--brand-glow),
+        inset 0 1px 0 rgba(255,255,255,0.6) !important;
+}
+.stButton > button[kind="primary"]:active { transform: translateY(0); }
+
+/* METRIC CARDS — fancier */
+[data-testid="stMetric"] {
+    background: linear-gradient(160deg, rgba(34,211,238,0.08) 0%, rgba(20,20,28,0.85) 40%, rgba(14,14,20,0.9) 100%) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 18px !important;
+    padding: 1.6rem 1.4rem !important;
+    position: relative; overflow: hidden;
+    box-shadow: 0 12px 40px -16px rgba(0,0,0,0.6);
+}
+[data-testid="stMetric"]::before {
+    content: ""; position: absolute; top: -60px; right: -60px;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(34,211,238,0.25), transparent 70%);
+    filter: blur(24px); pointer-events: none;
+}
+[data-testid="stMetric"]::after {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--brand), transparent);
+}
+[data-testid="stMetricLabel"] {
+    color: var(--text-dim) !important;
+    font-size: 0.7rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700 !important;
+}
+[data-testid="stMetricValue"] {
+    color: #fafafa !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 2.1rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    margin-top: 0.4rem !important;
+}
+
+/* INFO / ALERT */
+.stAlert, [data-testid="stAlert"] {
+    background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(34,211,238,0.02)) !important;
+    border: 1px solid rgba(34,211,238,0.25) !important;
+    border-radius: 14px !important;
+    color: var(--text) !important;
+    padding: 1rem 1.2rem !important;
+}
+.stAlert p { color: var(--text) !important; }
+
+/* EXPANDER */
+[data-testid="stExpander"] {
+    background: linear-gradient(180deg, rgba(20,20,28,0.7), rgba(14,14,20,0.7)) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 14px !important;
+    overflow: hidden;
+}
+[data-testid="stExpander"] summary { color: #fafafa !important; font-weight: 600 !important; padding: 0.85rem 1rem !important; }
+[data-testid="stExpander"] svg { color: var(--brand) !important; }
+[data-testid="stExpander"] summary:hover { background: rgba(34,211,238,0.04); }
+
+/* DIVIDER */
+hr { border: none !important; height: 1px !important; background: linear-gradient(90deg, transparent, var(--border-strong), transparent) !important; opacity: 1 !important; margin: 2rem 0 !important; }
+
+/* DATAFRAME */
+[data-testid="stDataFrame"], [data-testid="stTable"] {
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 14px !important;
+    overflow: hidden;
+    background: rgba(14,14,20,0.6) !important;
+}
+
+/* PROGRESS BAR */
+.stProgress > div > div > div > div { background: linear-gradient(90deg, var(--brand), var(--brand-2)) !important; box-shadow: 0 0 12px var(--brand-glow); }
+.stProgress > div > div > div { background: rgba(255,255,255,0.06) !important; border-radius: 999px !important; height: 8px !important; }
+
+/* CODE BLOCKS */
+.stCode, pre, code {
+    background: #0a0a0f !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* CAPTION */
+.stCaption, [data-testid="stCaptionContainer"] {
+    color: var(--text-dim) !important;
+    font-size: 0.78rem !important;
+}
+
+/* Result hero card */
+.lv-result-hero {
+    margin: 1rem 0 1.5rem; padding: 1.4rem 1.6rem; border-radius: 18px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.12) 0%, rgba(52,211,153,0.06) 100%);
+    border: 1px solid rgba(34,211,238,0.3);
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 12px 40px -16px var(--brand-glow);
+}
+.lv-result-hero .lv-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--brand); letter-spacing: 0.2em; text-transform: uppercase; }
+.lv-result-hero .lv-pill { padding: 6px 14px; border-radius: 999px; background: rgba(34,211,238,0.15); border: 1px solid rgba(34,211,238,0.4); color: var(--brand); font-weight: 700; font-size: 0.85rem; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #07070a; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 </style>
-""", unsafe_allow_html=True)
+""")
 
 # AMBIL KURS USD → IDR (scraping, tanpa API)
 # ============================================================
@@ -220,40 +506,44 @@ with st.spinner("📥 Memuat & memproses dataset..."):
 # SIDEBAR — Logo + Cara Penggunaan
 # ============================================================
 with st.sidebar:
-    # Logo
+        # Logo
     st.markdown("""
-    <div style="text-align:center; padding: 10px 0 16px 0;">
-        <div style="font-size: 48px;">🚗</div>
-        <div style="font-size: 20px; font-weight: 700; letter-spacing: 1px;">Car Price</div>
-        <div style="font-size: 13px; opacity: 0.8;">Prediction App</div>
-    </div>
-    """, unsafe_allow_html=True)
+        <div style="text-align:center; padding: 10px 0 16px 0;">
+            <div style="font-size: 48px;">🚗</div>
+            <div style="font-size: 20px; font-weight: 700; letter-spacing: 1px;">Car Price</div>
+            <div style="font-size: 13px; opacity: 0.8;">Prediction App</div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.html(f"""
+        <div class="lv-section-title">Cara Penggunaan</div>
 
-    st.divider()
+        <div class="lv-step">
+            <div class="lv-step-num">01</div>
+            <div class="lv-step-text"><b>Pelajari Data</b> — buka tab <b>Analisis Data</b> untuk melihat statistik dataset dan alur pengolahan.</div>
+        </div>
+        <div class="lv-step">
+            <div class="lv-step-num">02</div>
+            <div class="lv-step-text"><b>Input Spesifikasi</b> — isi formulir dengan detail teknis mobil (mesin, tenaga, dimensi, tipe bodi).</div>
+        </div>
+        <div class="lv-step">
+            <div class="lv-step-num">03</div>
+            <div class="lv-step-text"><b>Klik Prediksi</b> — model <b>Random Forest</b> akan memproses data secara instan.</div>
+        </div>
+        <div class="lv-step">
+            <div class="lv-step-num">04</div>
+            <div class="lv-step-text"><b>Lihat Hasil</b> — estimasi harga akan muncul dalam USD dan IDR.</div>
+        </div>
 
-    st.markdown("### 📖 Cara Penggunaan")
-    st.markdown("""
-    1. **Pelajari Data**: Buka tab **Analisis Data** jika Anda ingin melihat statistik dataset dan alur kode pengolahan data asli.
-    2. **Input Spesifikasi**: Pindah ke halaman **Prediksi Harga**. Isi formulir dengan detail teknis mobil seperti:
-        * Kapasitas Mesin (cc).
-        * Tenaga (hp).
-        * Dimensi (panjang/lebar).
-        * Tipe Bodi, dll.
-    3. **Klik Prediksi**: Tekan tombol **🚀 Prediksi** untuk memproses data menggunakan model *Random Forest*[cite: 2].
-    4. **Lihat Hasil**: Harga estimasi akan muncul dalam USD dan IDR (Rupiah).
-    """)
-
-    st.divider()
-    st.caption(f"R² Model: **{model_info['r2']:.3f}** | MAE: **${model_info['mae']:,.0f}**")
-    st.caption("© 2026 Car Price Predictor")
+        <div class="lv-foot">© 2026 · CarPrice AI</div>
+        """)
 
 
 # ============================================================
 # NAVIGASI TAB DI ATAS
 # ============================================================
-tab_home, tab_prediksi, tab_analisis, tab_tentang = st.tabs([
-    "Home",
+tab_prediksi, tab_tentang_aplikasi, tab_analisis, tab_tentang = st.tabs([
     "Prediksi Harga",
+    "Tentang Aplikasi",
     "Analisis Data",
     "👤 Tentang Saya",
 ])
@@ -262,7 +552,7 @@ tab_home, tab_prediksi, tab_analisis, tab_tentang = st.tabs([
 # ============================================================
 # TAB: HOME
 # ============================================================
-with tab_home:
+with tab_tentang_aplikasi:
 # Kode ini diletakkan di dalam logika menu Home
     st.title("🚗 Car Price Predictor")
     st.markdown("---")
