@@ -166,6 +166,38 @@ p, span, label, li, div { color: var(--text); }
     outline: none !important;
 }
 .stSelectbox > div > div { color: #fafafa !important; }
+
+/*list pilihan — dark theme, teks putih  */
+[data-baseweb="popover"],
+[data-baseweb="popover"] *,
+[data-baseweb="menu"],
+[data-baseweb="menu"] * {
+    background: #1a1a26 !important;
+    color: #e7e7ea !important;
+}
+[role="option"] {
+    background: #1a1a26 !important;
+    color: #e7e7ea !important;
+    padding: 10px 16px !important;
+}
+[role="option"]:hover {
+    background: rgba(34,211,238,0.12) !important;
+    color: #22d3ee !important;
+}
+[role="option"][aria-selected="true"] {
+    background: rgba(34,211,238,0.18) !important;
+    color: #22d3ee !important;
+}
+[role="option"][aria-selected="true"] {
+    background: rgba(34,211,238,0.18) !important;
+    color: #22d3ee !important;
+}
+div[data-baseweb="popover"] {
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 16px 48px -12px rgba(0,0,0,0.8) !important;
+    overflow: hidden !important;
+}
 label, .stNumberInput label, .stSelectbox label, .stTextInput label {
     color: var(--text-muted) !important;
     font-size: 0.7rem !important;
@@ -174,6 +206,7 @@ label, .stNumberInput label, .stSelectbox label, .stTextInput label {
     letter-spacing: 0.12em;
     margin-bottom: 0.5rem !important;
 }
+
 .stNumberInput button {
     background: rgba(255,255,255,0.04) !important;
     border-color: var(--border-strong) !important;
@@ -641,11 +674,6 @@ with tab_prediksi:
             int(df["berat_kosong"].min()), int(df["berat_kosong"].max()), 2500,
             help=f"Range dataset: {int(df['berat_kosong'].min())} – {int(df['berat_kosong'].max())}"
         )
-        tipe_bodi = st.selectbox(
-            "🚙 Tipe Bodi",
-            sorted(df["tipe_bodi"].unique())
-        )
-    with col2:
         lebar = st.number_input(
             "📏 Lebar (inch)",
             float(df["lebar"].min()), float(df["lebar"].max()), 65.5, step=0.1,
@@ -660,6 +688,11 @@ with tab_prediksi:
             "⛽ Konsumsi Tol (MPG)",
             int(df["konsumsi_tol"].min()), int(df["konsumsi_tol"].max()), 30,
             help=f"Range dataset: {int(df['konsumsi_tol'].min())} – {int(df['konsumsi_tol'].max())}"
+        )
+    with col2:
+        tipe_bodi = st.selectbox(
+            "🚙 Tipe Bodi",
+            sorted(df["tipe_bodi"].unique())
         )
         jenis_bahan_bakar = st.selectbox(
             "⛽ Jenis Bahan Bakar",
