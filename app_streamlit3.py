@@ -361,6 +361,42 @@ hr { border: none !important; height: 1px !important; background: linear-gradien
 ::-webkit-scrollbar-track { background: #07070a; }
 ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+/* HELP ICON (tanda tanya) — lebih terlihat */
+button[data-testid="stTooltipHoverTarget"],
+[data-testid="stTooltipIcon"] {
+    color: var(--brand) !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
+button[data-testid="stTooltipHoverTarget"] svg,
+[data-testid="stTooltipIcon"] svg {
+    color: var(--brand) !important;
+    fill: var(--brand) !important;
+    opacity: 1 !important;
+    width: 18px !important;
+    height: 18px !important;
+}
+button[data-testid="stTooltipHoverTarget"]:hover svg {
+    color: #67e8f9 !important;
+    fill: #67e8f9 !important;
+}
+
+/* TOOLTIP POPUP — dark background, teks terbaca */
+[data-testid="stTooltipContent"],
+div[role="tooltip"],
+div[data-radix-popper-content-wrapper] > div {
+    background: #1a1a26 !important;
+    color: #e7e7ea !important;
+    border: 1px solid rgba(34,211,238,0.35) !important;
+    border-radius: 12px !important;
+    padding: 10px 14px !important;
+    font-size: 0.85rem !important;
+    box-shadow: 0 8px 32px -8px rgba(0,0,0,0.8) !important;
+}
+div[data-radix-popper-content-wrapper] > div * {
+    color: #e7e7ea !important;
+}
 </style>
 """)
 
@@ -1726,7 +1762,6 @@ with tab_tentang:
         """)
 
     st.divider()
-
     st.subheader("Tentang Proyek Ini")
     st.markdown(f"""
     Aplikasi **Car Price Predictor** dibuat sebagai bagian dari tugas/proyek Machine Learning
