@@ -1661,32 +1661,32 @@ with tab_analisis:
             st.write("""
             Tipe bodi adalah bentuk desain keseluruhan dari sebuah kendaraan:
 
-            **Convertible** — Kendaraan dengan atap yang dapat dibuka atau dilipat.
+            **Convertible** Kendaraan dengan atap yang dapat dibuka atau dilipat.
 
-            **Hardtop** — Kendaraan dengan atap keras permanen, umumnya tanpa pilar tengah.
+            **Hardtop** Kendaraan dengan atap keras permanen, umumnya tanpa pilar tengah.
 
-            **Hatchback** — Kendaraan kompak dengan ruang bagasi menyatu dengan kabin dan pintu di belakang.
+            **Hatchback** Kendaraan kompak dengan ruang bagasi menyatu dengan kabin dan pintu di belakang.
 
-            **Sedan** — Tipe paling umum dengan tiga bagian terpisah: mesin, kabin, dan bagasi.
+            **Sedan** Tipe paling umum dengan tiga bagian terpisah: mesin, kabin, dan bagasi.
 
-            **Wagon** — Seperti sedan namun bagian belakang lebih panjang dan tinggi, kapasitas bagasi lebih besar.
+            **Wagon** Seperti sedan namun bagian belakang lebih panjang dan tinggi, kapasitas bagasi lebih besar.
             """)
 
         with st.expander("⛽ Jenis Bahan Bakar"):
             st.write("""
-            **Gas** — Kendaraan menggunakan bensin, tipe paling umum untuk kendaraan penumpang.
+            **Gas** Kendaraan menggunakan bensin, tipe paling umum untuk kendaraan penumpang.
 
-            **Diesel** — Kendaraan menggunakan solar. Lebih efisien untuk perjalanan jarak jauh
+            **Diesel** Kendaraan menggunakan solar. Lebih efisien untuk perjalanan jarak jauh
             dan menghasilkan torsi besar pada putaran rendah.
             """)
 
         with st.expander("Penggerak Roda"):
             st.write("""
-            **FWD (Front Wheel Drive)** — Tenaga disalurkan ke roda depan. Paling umum, efisien BBM.
+            **FWD (Front Wheel Drive)** Tenaga disalurkan ke roda depan. Paling umum, efisien BBM.
 
-            **RWD (Rear Wheel Drive)** — Tenaga disalurkan ke roda belakang. Banyak digunakan pada kendaraan sport/mewah.
+            **RWD (Rear Wheel Drive)** Tenaga disalurkan ke roda belakang. Banyak digunakan pada kendaraan sport/mewah.
 
-            **4WD (Four Wheel Drive)** — Tenaga ke keempat roda. Cocok untuk medan berat, umum pada SUV/off-road.
+            **4WD (Four Wheel Drive)** Tenaga ke keempat roda. Cocok untuk medan berat, umum pada SUV/off-road.
             """)
 
 
