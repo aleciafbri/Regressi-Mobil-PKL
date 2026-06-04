@@ -958,7 +958,7 @@ with tab_analisis:
         st.markdown("##### Cell 7 — df.columns")
         st.code("df.columns", language="python")
         st.markdown("**Output:**")
-        st.text("Index([" + ", ".join([f"'{c}'" for c in df_raw.columns]) + "], dtype='object')")
+        st.code("Index([" + ", ".join([f"'{c}'" for c in df_raw.columns]) + "], dtype='object'), language="text"")
         st.divider()
 
         # ── Cell 8: df.info() ─────────────────────────────────
@@ -968,7 +968,7 @@ with tab_analisis:
         import io as _io
         buf_info = _io.StringIO()
         df_raw.info(buf=buf_info)
-        st.text(buf_info.getvalue())
+        st.code(buf_info.getvalue(), language="text")
         st.divider()
 
         # ── Cell 9: df.sample(5) ──────────────────────────────
@@ -982,7 +982,7 @@ with tab_analisis:
         st.markdown("##### Cell 10 — df.isna().sum()")
         st.code("df.isna().sum()", language="python")
         st.markdown("**Output:**")
-        st.text("\n".join([f"{k:<22} {v}" for k, v in df_raw.isna().sum().items()]) + "\ndtype: int64")
+        st.code("\n".join([f"{k:<22} {v}" for k, v in df_raw.isna().sum().items()]) + "\ndtype: int64",language="text")
         st.divider()
 
         # ── Cell 11: Cek nilai '?' ────────────────────────────
@@ -999,7 +999,7 @@ with tab_analisis:
             "langkah_piston": 4, "rasio_kompresi": 0, "tenaga_mesin": 2,
             "rpm_puncak": 2, "konsumsi_kota": 0, "konsumsi_tol": 0, "harga": 4,
         }
-        st.text("\n".join([f"{k:<22} {v}" for k, v in tanda_tanya.items()]) + "\ndtype: int64")
+        st.code("\n".join([f"{k:<22} {v}" for k, v in tanda_tanya.items()]) + "\ndtype: int64",language="text")
         st.divider()
 
         # ── Cell 12: Replace '?' → NaN ───────────────────────
@@ -1015,7 +1015,7 @@ with tab_analisis:
         st.markdown("##### Cell 13 — df.isna().sum() setelah Replace")
         st.code("df.isna().sum()", language="python")
         st.markdown("**Output:**")
-        st.text("\n".join([f"{k:<22} {v}" for k, v in tanda_tanya.items()]) + "\ndtype: int64")
+        st.code("\n".join([f"{k:<22} {v}" for k, v in tanda_tanya.items()]) + "\ndtype: int64",language="text")
         st.divider()
 
         # ── Cell 14: df.describe() ────────────────────────────
@@ -1029,7 +1029,7 @@ with tab_analisis:
         st.markdown("##### Cell 15 — df.duplicated().sum()")
         st.code("df.duplicated().sum()", language="python")
         st.markdown("**Output:**")
-        st.text(str(df_raw.duplicated().sum()))
+        st.code(str(df_raw.duplicated().sum()),language="text")
         st.divider()
 
         # ── Cell 16: Drop kolom & dropna ─────────────────────
@@ -1174,7 +1174,7 @@ with tab_analisis:
         st.markdown("##### Cell 24 — df.dtypes")
         st.code("df.dtypes", language="python")
         st.markdown("**Output:**")
-        st.text(str(df.dtypes))
+        st.code(str(df.dtypes),language="text")
         st.divider()
 
         # ── Cell 25: Boxplot outlier harga ───────────────────
@@ -1253,7 +1253,7 @@ with tab_analisis:
         output_merek = f"Jumlah data: {len(df)}\nJumlah merek unik: {df['merek'].nunique()}\n"
         output_merek += "merek\n" + "\n".join([f"{m:<20} {c}" for m, c in merek_counts.items()])
         output_merek += "\nName: count, dtype: int64"
-        st.text(output_merek)
+        st.code(output_merek)
         st.divider()
 
         # ── Cell 29: Linear Regression (tanpa merek, R2 only) ─
@@ -1313,7 +1313,7 @@ with tab_analisis:
         )
         st.markdown("**Output:**")
         lr_info = model_info["perbandingan"]["Linear Regression"]
-        st.text(f"R2 tanpa merek: {lr_info['r2']}")
+        st.code(f"R2 tanpa merek: {lr_info['r2']}",language="text")
         st.divider()
 
         # ── Cell 30: Linear Regression (full metrics) ────────
@@ -1372,7 +1372,7 @@ with tab_analisis:
         )
         st.markdown("**Output:**")
         lr_info = model_info["perbandingan"]["Linear Regression"]
-        st.text(f"Linear Regression\nR2 Score :  {lr_info['r2']}\nMAE Score :  {lr_info['mae']}\nMSE Score :  {lr_info['mse']}")
+        st.code(f"Linear Regression\nR2 Score :  {lr_info['r2']}\nMAE Score :  {lr_info['mae']}\nMSE Score :  {lr_info['mse']}",language="text")
         st.divider()
 
         # ── Cell 31: Decision Tree ────────────────────────────
@@ -1431,7 +1431,7 @@ with tab_analisis:
                     )
         st.markdown("**Output:**")
         dt_info = model_info["perbandingan"]["Decision Tree"]
-        st.text(f"Decision Tree\nR2 Score :  {dt_info['r2']}\nMAE Score :  {dt_info['mae']}\nMSE Score :  {dt_info['mse']}")
+        st.code(f"Decision Tree\nR2 Score :  {dt_info['r2']}\nMAE Score :  {dt_info['mae']}\nMSE Score :  {dt_info['mse']}",language="text")
         st.divider()
 
         # ── Cell 32: Random Forest ────────────────────────────
@@ -1490,7 +1490,7 @@ with tab_analisis:
         )
         st.markdown("**Output:**")
         rf_info = model_info["perbandingan"]["Random Forest"]
-        st.text(f"Random Forest\nR2 Score :  {rf_info['r2']}\nMAE Score :  {rf_info['mae']}\nMSE Score :  {rf_info['mse']}")
+        st.code(f"Random Forest\nR2 Score :  {rf_info['r2']}\nMAE Score :  {rf_info['mae']}\nMSE Score :  {rf_info['mse']}",language="text")
         st.divider()
 
         # ── Cell 33: Cross Validation ─────────────────────────
@@ -1510,7 +1510,7 @@ with tab_analisis:
         from sklearn.model_selection import train_test_split as tts
         Xtrcv, _, ytrcv, _ = tts(X_cv, y_cv, test_size=0.2, random_state=42)
         cv_scores = cvs(model_info["model"], Xtrcv, ytrcv, cv=5, scoring="r2")
-        st.text(f"Score tiap fold : {cv_scores}\nMean Score : {cv_scores.mean()}")
+        st.code(f"Score tiap fold : {cv_scores}\nMean Score : {cv_scores.mean()}",language="text")
         st.divider()
 
         # ── Cell 34: Save model ───────────────────────────────
@@ -1521,7 +1521,7 @@ with tab_analisis:
             language="python"
         )
         st.markdown("**Output:**")
-        st.text("['model_prediksi_mobil.joblib']")
+        st.code("['model_prediksi_mobil.joblib']",language="text")
         import io as _io2
         import joblib
         buf_dl = _io2.BytesIO()
@@ -1597,7 +1597,7 @@ with tab_analisis:
         st.dataframe(hasil_samp, use_container_width=True, hide_index=True)
         st.divider()
 
-    # ── SUB TAB: GLOSARIUM ISTILAH ────────────────────────────
+    # ── SUB TAB: ISTILAH ────────────────────────────
     with sub_glosarium:
         st.markdown("Penjelasan istilah teknis yang digunakan dalam aplikasi dan dataset ini.")
         st.divider()
