@@ -654,17 +654,8 @@ with tab_tentang_aplikasi:
         **2. Referensi Pengambilan Keputusan**
         Menjadi dasar pertimbangan bagi penjual untuk memasang harga yang kompetitif atau bagi pembeli agar tidak membeli di atas harga pasar.
         """)
-
-    with col2:
-        st.markdown("""
-        **3. Analisis Fitur Kendaraan**
-        Pengguna dapat melihat bagaimana perubahan pada spesifikasi (seperti tenaga mesin atau efisiensi BBM) dapat mempengaruhi nilai ekonomi kendaraan.
         
-        **4. Digitalisasi Penaksiran Harga**
-        Menggantikan metode taksiran tradisional dengan pendekatan berbasis data (Data-Driven) yang lebih objektif.
-        """)
-
-    st.info("💡 Klik menu **Prediksi Harga** di samping untuk mulai mencoba simulasi perhitungan harga mobil Anda.")
+    st.info("💡 Klik menu **Prediksi Harga** di samping untuk mulai mencoba perhitungan harga mobil Anda.")
 
 # ============================================================
 # TAB: PREDIKSI HARGA
