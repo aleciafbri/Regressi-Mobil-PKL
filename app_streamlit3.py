@@ -951,7 +951,7 @@ with tab_analisis:
         st.markdown("##### Cell 6 — df.shape")
         st.code("df.shape", language="python")
         st.markdown("**Output:**")
-        st.text(f"({len(df_raw)}, {len(df_raw.columns)})")
+        st.code(f"({len(df_raw)}, {len(df_raw.columns)})", language="text")
         st.divider()
 
         # ── Cell 7: df.columns ────────────────────────────────
