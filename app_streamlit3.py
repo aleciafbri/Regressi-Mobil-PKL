@@ -958,7 +958,7 @@ with tab_analisis:
         st.markdown("##### Cell 7 — df.columns")
         st.code("df.columns", language="python")
         st.markdown("**Output:**")
-        st.code("Index([" + ", ".join([f"'{c}'" for c in df_raw.columns]) + "], dtype='object'), language="text")
+        st.code('Index([' + ', '.join([f"'{c}'" for c in df_raw.columns]) + '], dtype=\'object\')', language="text")
         st.divider()
 
         # ── Cell 8: df.info() ─────────────────────────────────
