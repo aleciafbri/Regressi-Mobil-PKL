@@ -629,7 +629,6 @@ with tab_tentang_aplikasi:
     # Bagian Latar Belakang
     st.subheader("Latar Belakang")
     st.write("""
-    Industri otomotif memiliki variasi harga yang sangat dinamis tergantung pada spesifikasi teknis kendaraan. 
     Seringkali, pembeli atau penjual kesulitan menentukan harga pasar yang adil bagi sebuah kendaraan berdasarkan fitur-fitur yang dimilikinya. 
     Aplikasi ini dikembangkan untuk memberikan solusi cerdas dalam mengestimasi harga jual mobil secara instan.
     """)
